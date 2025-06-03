@@ -101,7 +101,7 @@ class EmbeddingGenerator:
             self.logger.info("Gemini API client initialized successfully")
 
         except Exception as e:
-            self.logger.error(f"❌ Failed to initialize Gemini API client: {str(e)}")
+            self.logger.error(f"Failed to initialize Gemini API client: {str(e)}")
             self.client = None
 
     def _test_api_connection(self):
@@ -168,7 +168,7 @@ class EmbeddingGenerator:
                     time.sleep(self.rate_limit_delay)
 
             except Exception as e:
-                self.logger.error(f"❌ Batch {batch_num} failed: {str(e)}")
+                self.logger.error(f"Batch {batch_num} failed: {str(e)}")
                 # Add original items without embeddings
                 for item in batch:
                     item_copy = item.copy()
@@ -356,8 +356,8 @@ class EmbeddingGenerator:
                     self.logger.info(f"Retrying in {delay:.1f} seconds...")
                     time.sleep(delay)
 
-        # ❌ All retries failed
-        self.logger.error("❌ All embedding generation attempts failed")
+        # All retries failed
+        self.logger.error("All embedding generation attempts failed")
         return [[] for _ in texts]
 
     @error_handler(ErrorType.EMBEDDING_GENERATION)
