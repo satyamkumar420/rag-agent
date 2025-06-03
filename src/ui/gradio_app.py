@@ -1195,7 +1195,9 @@ class GradioApp:
                 "storage_size": f"{kb_info.get('total_chunks', self.total_chunks) * 0.5:.1f} MB",
                 "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "vector_db_status": kb_info.get("vector_db_status", "Unknown"),
-                "embedding_model": kb_info.get("embedding_model", "Unknown"),
+                "embedding_model": kb_info.get(
+                    "embedding_model", "gemini-embedding-exp-03-07"
+                ),
                 "index_health": kb_info.get("index_health", "Unknown"),
             }
 
