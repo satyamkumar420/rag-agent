@@ -1,0 +1,100 @@
+# Core Dependencies
+gradio
+pyyaml
+python-dotenv
+
+# Document Processing
+PyPDF2
+PyMuPDF
+pdfplumber
+python-docx
+pandas
+openpyxl
+python-pptx
+
+# Web Scraping and URL Processing
+requests
+beautifulsoup4
+lxml
+html2text
+trafilatura
+
+# Text Processing
+nltk
+spacy
+textstat
+langdetect
+
+# Embedding and Vector Database
+google-generativeai
+pinecone
+sentence-transformers
+
+# LangChain and LLM Integration
+langchain
+langchain-google-genai
+langchain-openai
+langchain-community
+openai
+
+# Vector Operations and ML
+numpy
+scikit-learn
+faiss-cpu
+
+# Async and Performance
+aiohttp
+asyncio
+
+# Logging and Monitoring
+structlog
+prometheus-client
+
+# Development and Testing
+pytest
+pytest-asyncio
+black
+flake8
+mypy
+
+# Optional Dependencies for Enhanced Features
+# Uncomment if needed:
+
+# Advanced NLP
+# transformers
+# torch
+
+# Image Processing (if document images need processing)
+# Pillow
+# pytesseract
+
+# Audio Processing (for future features)
+# librosa
+# soundfile
+
+# Database Support
+# psycopg2-binary
+# sqlalchemy
+
+# Cloud Storage
+# boto3
+# google-cloud-storage
+
+# Monitoring and Analytics
+# sentry-sdk
+
+# Additional Text Processing
+# langdetect
+# polyglot
+
+# Web Framework (if API endpoints needed)
+# fastapi
+# uvicorn
+
+# Caching
+# redis
+# diskcache
+
+# Configuration Management
+# hydra-core
+# omegaconf
