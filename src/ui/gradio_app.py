@@ -201,22 +201,41 @@ class GradioApp:
                     placeholder="https://example.com\nhttps://another-site.com\n...",
                 )
 
-                with gr.Accordion("⚙Advanced Options", open=False):
+                with gr.Accordion("⚙️ Advanced Crawling Options", open=False):
+                    gr.Markdown("🕷️ **Crawl Configuration**")
+
                     max_depth = gr.Slider(
-                        label="Crawl Depth",
+                        label="🔍 Crawl Depth (How deep to follow links)",
                         minimum=1,
-                        maximum=3,
+                        maximum=5,
                         value=1,
                         step=1,
-                    )
-                    follow_links = gr.Checkbox(
-                        label="Follow Links",
-                        value=True,
+                        info="Higher depth = more pages but slower processing",
                     )
 
+                    follow_links = gr.Checkbox(
+                        label="🔗 Follow Internal Links",
+                        value=True,
+                        info="Automatically discover and process linked pages",
+                    )
+
+                    gr.Markdown("⚡ **Performance Tips:**")
+                    gr.Markdown("• Depth 1: Single page only")
+                    gr.Markdown("• Depth 2-3: Good for small sites")
+                    gr.Markdown("• Depth 4-5: Use carefully, can be slow")
+
                 with gr.Row():
-                    url_btn = gr.Button("Process URLs", variant="primary", size="lg")
-                    clear_url_btn = gr.Button("Clear", variant="secondary")
+                    url_btn = gr.Button("🚀 Process URLs", variant="primary", size="lg")
+                    clear_url_btn = gr.Button("🗑️ Clear", variant="secondary")
+
+                # Progress indicator
+                with gr.Row():
+                    progress_info = gr.Textbox(
+                        label="🔄 Processing Status",
+                        value="Ready to process URLs...",
+                        interactive=False,
+                        visible=True,
+                    )
 
             with gr.Column(scale=1):
                 gr.Markdown("###   Processing Results")
@@ -230,12 +249,18 @@ class GradioApp:
         # Event handlers
         url_btn.click(
             fn=self._process_urls,
-            inputs=[url_input],
-            outputs=[url_output, self.status_display, self.stats_display],
+            inputs=[url_input, max_depth, follow_links],
+            outputs=[
+                url_output,
+                self.status_display,
+                self.stats_display,
+                progress_info,
+            ],
         )
 
         clear_url_btn.click(
-            fn=lambda: ("", "Ready "), outputs=[url_output, self.status_display]
+            fn=lambda: ("", "Ready 🟢", "Ready to process URLs..."),
+            outputs=[url_output, self.status_display, progress_info],
         )
 
         return {
@@ -515,50 +540,102 @@ class GradioApp:
             self.logger.error(f"❌ Error processing documents: {str(e)}")
             return f"❌ Error: {str(e)}", "Error ❌", self._get_stats_string()
 
-    def _process_urls(self, urls_text: str) -> Tuple[str, str, str]:
+    def _process_urls(
+        self, urls_text: str, max_depth: int = 1, follow_links: bool = True
+    ) -> Tuple[str, str, str, str]:
         """
-        Process URLs with status tracking.
+        Process URLs with advanced crawling options and progress tracking.
 
         Args:
             urls_text: Text containing URLs (one per line)
+            max_depth: Maximum crawling depth
+            follow_links: Whether to follow links
 
         Returns:
-            Tuple of (processing results, status, stats)
+            Tuple of (processing results, status, stats, progress_info)
         """
         if not urls_text.strip():
-            return "No URLs provided.", "Ready ", self._get_stats_string()
+            return (
+                "No URLs provided.",
+                "Ready 🟢",
+                self._get_stats_string(),
+                "Ready to process URLs...",
+            )
 
         try:
             urls = [url.strip() for url in urls_text.split("\n") if url.strip()]
-            self.logger.info(f"Processing {len(urls)} URLs")
+            self.logger.info(
+                f"Processing {len(urls)} URLs with depth={max_depth}, follow_links={follow_links}"
+            )
 
             results = []
             successful = 0
+            progress_msg = f"🚀 Starting crawl of {len(urls)} URLs..."
 
-            for url in urls:
+            for i, url in enumerate(urls):
+                progress_msg = f"🔄 Processing URL {i+1}/{len(urls)}: {url[:50]}..."
                 try:
-                    # Process each URL
-                    result = self.rag_system.process_url(url)
+                    # Process each URL with advanced options
+                    result = self.rag_system.process_url(
+                        url, max_depth=max_depth, follow_links=follow_links
+                    )
 
                     if result.get("status") == "success":
                         successful += 1
                         self.total_documents += 1
                         self.total_chunks += result.get("chunks_processed", 0)
 
-                        results.append(
-                            f"{url}: "
-                            f"{result.get('chunks_processed', 0)} chunks processed"
-                        )
+                        # Enhanced result display with crawling info
+                        chunks = result.get("chunks_processed", 0)
+                        linked_docs = result.get("linked_documents_processed", 0)
+                        depth = result.get("depth", 0)
+
+                        result_text = f"✅ {url}:\n"
+                        result_text += f"   📄 {chunks} chunks processed"
+                        if linked_docs > 0:
+                            result_text += f"\n   🔗 {linked_docs} linked pages found"
+                        if depth > 0:
+                            result_text += f"\n   🕷️ Crawled to depth {depth}"
+
+                        results.append(result_text)
                     else:
-                        results.append(
-                            f"❌ {url}: {result.get('error', 'Processing failed')}"
-                        )
+                        error_msg = result.get("error", "Processing failed")
+                        results.append(f"❌ {url}: {error_msg}")
+
+                        # Add helpful hints for common crawling issues
+                        if "depth" in error_msg.lower():
+                            results.append("   💡 Try reducing crawl depth")
+                        elif "timeout" in error_msg.lower():
+                            results.append(
+                                "   💡 Site may be slow, try single page mode"
+                            )
+                        elif "robots" in error_msg.lower():
+                            results.append(
+                                "   💡 Site blocks crawlers, try direct URL only"
+                            )
 
                 except Exception as e:
                     results.append(f"❌ {url}: {str(e)}")
 
-            # Summary
-            summary = f"\nSummary: {successful}/{len(urls)} URLs processed successfully"
+            # Enhanced Summary with crawling stats
+            total_linked = sum(
+                result.get("linked_documents_processed", 0)
+                for result in [
+                    self.rag_system.process_url(url, max_depth, follow_links)
+                    for url in urls
+                ]
+                if result.get("status") == "success"
+            )
+
+            summary = f"\n" + "=" * 50
+            summary += f"\n📊 **CRAWLING SUMMARY**"
+            summary += f"\n✅ URLs processed: {successful}/{len(urls)}"
+            if follow_links and max_depth > 1:
+                summary += f"\n🔗 Linked pages discovered: {total_linked}"
+                summary += f"\n🕷️ Max crawl depth: {max_depth}"
+            summary += f"\n📄 Total chunks: {self.total_chunks}"
+            summary += "\n" + "=" * 50
+
             output = "\n".join(results) + summary
 
             status = (
@@ -567,11 +644,20 @@ class GradioApp:
                 else "Processing failed ❌"
             )
 
-            return output, status, self._get_stats_string()
+            final_progress = (
+                f"✅ Completed! Processed {successful}/{len(urls)} URLs successfully"
+            )
+            return output, status, self._get_stats_string(), final_progress
 
         except Exception as e:
             self.logger.error(f"❌ Error processing URLs: {str(e)}")
-            return f"❌ Error: {str(e)}", "Error ❌", self._get_stats_string()
+            error_progress = f"❌ Error occurred during processing"
+            return (
+                f"❌ Error: {str(e)}",
+                "Error ❌",
+                self._get_stats_string(),
+                error_progress,
+            )
 
     def _process_query(self, query: str) -> Tuple[str, str, Dict[str, Any], str, str]:
         """

@@ -389,12 +389,16 @@ class RAGSystem:
                 "chunks_processed": 0,
             }
 
-    def process_url(self, url: str) -> dict:
+    def process_url(
+        self, url: str, max_depth: int = 1, follow_links: bool = True
+    ) -> dict:
         """
-        Process a URL through the complete pipeline.
+        Process a URL through the complete pipeline with advanced options.
 
         Args:
             url: URL to process
+            max_depth: Maximum crawling depth
+            follow_links: Whether to follow links
 
         Returns:
             Dictionary with processing results
@@ -418,7 +422,15 @@ class RAGSystem:
                     "chunks_processed": 0,
                 }
 
-            # Step 1: Extract content from URL
+            # Step 1: Configure URL processor with advanced options
+            # Update URL processor configuration dynamically
+            self.url_processor.max_depth = max_depth
+            self.url_processor.follow_links = follow_links
+
+            # Reset processor state for fresh crawl
+            self.url_processor.reset()
+
+            # Extract content from URL
             url_result = self.url_processor.process_url(url)
 
             if not url_result or "content" not in url_result:

@@ -158,6 +158,11 @@ class URLProcessor:
                 "depth": depth,
                 "linked_documents": [],
                 "document_type": "webpage",
+                "crawl_stats": {
+                    "max_depth_configured": self.max_depth,
+                    "follow_links_enabled": self.follow_links,
+                    "current_depth": depth,
+                },
             }
 
             #  Follow links if configured and not at max depth
