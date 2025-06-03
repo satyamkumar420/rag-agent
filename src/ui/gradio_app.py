@@ -144,7 +144,15 @@ class GradioApp:
                 file_upload = gr.File(
                     label="Select Files",
                     file_count="multiple",
-                    file_types=[".pdf", ".docx", ".csv", ".xlsx", ".pptx"],
+                    file_types=[
+                        ".pdf",
+                        ".docx",
+                        ".csv",
+                        ".xlsx",
+                        ".pptx",
+                        ".txt",
+                        ".md",
+                    ],
                     height=200,
                 )
 
