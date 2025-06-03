@@ -84,7 +84,7 @@ class QueryProcessor:
             if self.enable_caching and cache_key in self.query_cache:
                 cached_result = self.query_cache[cache_key]
                 if self._is_cache_valid(cached_result["timestamp"]):
-                    self.logger.info("📋 Returning cached result")
+                    self.logger.info("  Returning cached result")
                     cached_result["from_cache"] = True
                     return cached_result
 

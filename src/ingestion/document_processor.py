@@ -262,7 +262,7 @@ class DocumentProcessor:
                     paragraphs.append({"paragraph": i + 1, "content": text})
                     full_text_parts.append(text)
 
-            # 📋 Extract tables if present
+            #   Extract tables if present
             tables_content = []
             for table_idx, table in enumerate(doc.tables):
                 table_data = []
@@ -379,7 +379,7 @@ class DocumentProcessor:
         df = df.dropna(how="all")  # Remove completely empty rows
         df = df.fillna("")  # Fill NaN with empty strings
 
-        # 📋 Create text representation
+        #   Create text representation
         content_parts = []
 
         # Add headers

@@ -155,7 +155,7 @@ class GradioApp:
                     clear_upload_btn = gr.Button("Clear", variant="secondary")
 
             with gr.Column(scale=1):
-                gr.Markdown("### 📋 Processing Results")
+                gr.Markdown("###   Processing Results")
                 upload_output = gr.Textbox(
                     label="Results",
                     lines=15,
@@ -211,7 +211,7 @@ class GradioApp:
                     clear_url_btn = gr.Button("Clear", variant="secondary")
 
             with gr.Column(scale=1):
-                gr.Markdown("### 📋 Processing Results")
+                gr.Markdown("###   Processing Results")
                 url_output = gr.Textbox(
                     label="Results",
                     lines=15,
@@ -408,7 +408,7 @@ class GradioApp:
 
             # Logs
             system_logs = gr.Textbox(
-                label="📋 System Logs",
+                label="  System Logs",
                 lines=10,
                 interactive=False,
                 placeholder="System logs will appear here...",
@@ -550,9 +550,7 @@ class GradioApp:
                     results.append(f"❌ {url}: {str(e)}")
 
             # Summary
-            summary = (
-                f"\nSummary: {successful}/{len(urls)} URLs processed successfully"
-            )
+            summary = f"\nSummary: {successful}/{len(urls)} URLs processed successfully"
             output = "\n".join(results) + summary
 
             status = (
