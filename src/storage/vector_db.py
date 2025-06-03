@@ -634,3 +634,96 @@ class VectorDB:
             "start_time": datetime.now(),
         }
         self.logger.info("Statistics reset")
+
+    def get_stats(self) -> Dict[str, Any]:
+        """
+        Get simplified stats for UI display.
+
+        Returns:
+            Dictionary with basic statistics
+        """
+        try:
+            if not self.index:
+                return {"total_vectors": 0, "status": "disconnected"}
+
+            # Get Pinecone stats
+            pinecone_stats = self.index.describe_index_stats()
+
+            return {
+                "total_vectors": pinecone_stats.total_vector_count,
+                "dimension": pinecone_stats.dimension,
+                "index_fullness": pinecone_stats.index_fullness,
+                "status": "connected",
+            }
+        except Exception as e:
+            self.logger.warning(f"Could not get stats: {e}")
+            return {"total_vectors": 0, "status": "error", "error": str(e)}
+
+    def get_unique_sources(self) -> List[Dict[str, Any]]:
+        """
+        Get unique sources from stored vectors.
+
+        Returns:
+            List of unique sources with metadata
+        """
+        try:
+            if not self.index:
+                return []
+
+            # This is a simplified approach - in a real implementation,
+            # you might want to maintain a separate metadata index
+            # For now, we'll return mock data based on what might be stored
+
+            # Try to get some sample vectors to extract sources
+            test_vector = [0.1] * self.dimension
+            results = self.index.query(
+                vector=test_vector,
+                top_k=100,  # Get more results to find unique sources
+                include_metadata=True,
+            )
+
+            sources = {}
+            for match in results.matches:
+                if hasattr(match, "metadata") and match.metadata:
+                    source = match.metadata.get("source", "Unknown")
+                    if source not in sources:
+                        sources[source] = {
+                            "source": source,
+                            "chunk_count": 1,
+                            "added_date": match.metadata.get("stored_at", "Unknown"),
+                        }
+                    else:
+                        sources[source]["chunk_count"] += 1
+
+            return list(sources.values())
+
+        except Exception as e:
+            self.logger.warning(f"Could not get unique sources: {e}")
+            return []
+
+    def list_documents(self) -> List[Dict[str, Any]]:
+        """
+        List all documents in the vector database.
+
+        Returns:
+            List of document information
+        """
+        try:
+            # Get unique sources and format as documents
+            sources = self.get_unique_sources()
+            documents = []
+
+            for source_info in sources:
+                documents.append(
+                    {
+                        "name": source_info["source"],
+                        "chunks": source_info["chunk_count"],
+                        "date": source_info["added_date"],
+                    }
+                )
+
+            return documents
+
+        except Exception as e:
+            self.logger.warning(f"Could not list documents: {e}")
+            return []

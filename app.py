@@ -504,12 +504,13 @@ class RAGSystem:
                 "chunks_processed": 0,
             }
 
-    def query(self, question: str) -> dict:
+    def query(self, question: str, max_results: int = 5) -> dict:
         """
-        Process a query and generate a response.
+        Process a query and generate a response with configurable result limits.
 
         Args:
             question: User question
+            max_results: Maximum number of results to retrieve
 
         Returns:
             Dictionary with response and metadata
@@ -530,8 +531,15 @@ class RAGSystem:
                     "error": "Components not available",
                 }
 
-            # Step 1: Process query and retrieve context
+            # Step 1: Process query and retrieve context with max_results
+            # Update query processor config temporarily
+            original_top_k = self.query_processor.top_k
+            self.query_processor.top_k = max_results
+
             query_result = self.query_processor.process_query(question)
+
+            # Restore original top_k
+            self.query_processor.top_k = original_top_k
 
             if query_result.get("error"):
                 return {

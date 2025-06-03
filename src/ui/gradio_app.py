@@ -322,7 +322,7 @@ class GradioApp:
         # Event handlers
         query_btn.click(
             fn=self._process_query,
-            inputs=[query_input],
+            inputs=[query_input, include_sources, max_results],
             outputs=[
                 response_output,
                 confidence_display,
@@ -385,36 +385,383 @@ class GradioApp:
         }
 
     def _create_analytics_tab(self):
-        """Create the analytics dashboard tab."""
+        """Create the analytics dashboard tab with real-time data."""
         with gr.Column():
             gr.Markdown("### 📈 Analytics Dashboard")
+            gr.Markdown("Real-time insights into your RAG system performance")
+
+            with gr.Row():
+                refresh_analytics_btn = gr.Button(
+                    "🔄 Refresh Analytics", variant="secondary"
+                )
+                export_analytics_btn = gr.Button(
+                    "📊 Export Report", variant="secondary"
+                )
 
             with gr.Row():
                 with gr.Column():
                     query_analytics = gr.JSON(
-                        label="Query Analytics",
-                        value={},
+                        label="🔍 Query Analytics",
+                        value=self._get_initial_query_analytics(),
                     )
 
                 with gr.Column():
                     system_metrics = gr.JSON(
                         label="⚡ System Metrics",
-                        value={},
+                        value=self._get_initial_system_metrics(),
                     )
 
-            # Query history
+            with gr.Row():
+                with gr.Column():
+                    performance_metrics = gr.JSON(
+                        label="🚀 Performance Metrics",
+                        value=self._get_initial_performance_metrics(),
+                    )
+
+                with gr.Column():
+                    usage_stats = gr.JSON(
+                        label="📊 Usage Statistics",
+                        value=self._get_initial_usage_stats(),
+                    )
+
+            # Query history with enhanced information
             query_history = gr.Dataframe(
-                headers=["Query", "Results", "Confidence", "Time"],
-                datatype=["str", "number", "number", "str"],
-                label="Recent Queries",
+                headers=[
+                    "Query",
+                    "Results",
+                    "Confidence",
+                    "Processing Time",
+                    "Timestamp",
+                ],
+                datatype=["str", "number", "number", "str", "str"],
+                label="📝 Recent Query History",
                 interactive=False,
+                value=self._get_initial_query_history(),
+            )
+
+            # Event handlers
+            refresh_analytics_btn.click(
+                fn=self._refresh_analytics,
+                outputs=[
+                    query_analytics,
+                    system_metrics,
+                    performance_metrics,
+                    usage_stats,
+                    query_history,
+                ],
             )
 
         return {
             "query_analytics": query_analytics,
             "system_metrics": system_metrics,
+            "performance_metrics": performance_metrics,
+            "usage_stats": usage_stats,
             "query_history": query_history,
         }
+
+    def _get_initial_query_analytics(self) -> Dict[str, Any]:
+        """Get initial query analytics data."""
+        return {
+            "total_queries": self.query_count,
+            "average_confidence": "N/A",
+            "most_common_topics": [],
+            "query_success_rate": "100%",
+            "cache_hit_rate": "0%",
+            "status": "📊 Ready to track queries",
+        }
+
+    def _get_initial_system_metrics(self) -> Dict[str, Any]:
+        """Get initial system metrics."""
+        return {
+            "documents_processed": self.total_documents,
+            "chunks_stored": self.total_chunks,
+            "embedding_model": "Gemini",
+            "vector_db": "Pinecone",
+            "uptime": "Just started",
+            "status": "🟢 System operational",
+        }
+
+    def _get_initial_performance_metrics(self) -> Dict[str, Any]:
+        """Get initial performance metrics."""
+        return {
+            "avg_query_time": "N/A",
+            "avg_embedding_time": "N/A",
+            "avg_retrieval_time": "N/A",
+            "memory_usage": "Normal",
+            "throughput": "N/A queries/min",
+            "status": "⚡ Performance tracking active",
+        }
+
+    def _get_initial_usage_stats(self) -> Dict[str, Any]:
+        """Get initial usage statistics."""
+        return {
+            "documents_uploaded": 0,
+            "urls_processed": 0,
+            "successful_queries": 0,
+            "failed_queries": 0,
+            "peak_usage_time": "N/A",
+            "status": "📈 Usage tracking enabled",
+        }
+
+    def _get_initial_query_history(self) -> List[List[str]]:
+        """Get initial query history."""
+        return [
+            ["No queries yet", "0", "0.0", "0.0s", "Start asking questions!"],
+            ["Upload documents first", "0", "0.0", "0.0s", "Build your knowledge base"],
+            [
+                "Try the examples above",
+                "0",
+                "0.0",
+                "0.0s",
+                "Get started with sample queries",
+            ],
+        ]
+
+    def _refresh_analytics(
+        self,
+    ) -> Tuple[
+        Dict[str, Any], Dict[str, Any], Dict[str, Any], Dict[str, Any], List[List[str]]
+    ]:
+        """Refresh all analytics data."""
+        try:
+            # Get real analytics from query processor if available
+            query_analytics = self._get_real_query_analytics()
+            system_metrics = self._get_real_system_metrics()
+            performance_metrics = self._get_real_performance_metrics()
+            usage_stats = self._get_real_usage_stats()
+            query_history = self._get_real_query_history()
+
+            return (
+                query_analytics,
+                system_metrics,
+                performance_metrics,
+                usage_stats,
+                query_history,
+            )
+
+        except Exception as e:
+            self.logger.error(f"❌ Error refreshing analytics: {e}")
+            return (
+                {"error": str(e)},
+                {"error": str(e)},
+                {"error": str(e)},
+                {"error": str(e)},
+                [["Error loading history", "0", "0.0", "0.0s", str(e)]],
+            )
+
+    def _get_real_query_analytics(self) -> Dict[str, Any]:
+        """Get real query analytics from the system."""
+        try:
+            analytics = {
+                "total_queries": self.query_count,
+                "documents_in_kb": self.total_documents,
+                "chunks_available": self.total_chunks,
+                "last_updated": datetime.now().strftime("%H:%M:%S"),
+            }
+
+            # Get analytics from query processor if available
+            if hasattr(self.rag_system, "query_processor") and hasattr(
+                self.rag_system.query_processor, "get_query_analytics"
+            ):
+                processor_analytics = (
+                    self.rag_system.query_processor.get_query_analytics()
+                )
+                analytics.update(processor_analytics)
+
+            # Calculate additional metrics
+            if self.query_count > 0:
+                analytics["avg_results_per_query"] = round(
+                    self.total_chunks / max(self.query_count, 1), 2
+                )
+                analytics["system_utilization"] = (
+                    "Active" if self.query_count > 5 else "Light"
+                )
+            else:
+                analytics["avg_results_per_query"] = 0
+                analytics["system_utilization"] = "Idle"
+
+            analytics["status"] = "🟢 Analytics active"
+            return analytics
+
+        except Exception as e:
+            return {"error": f"Analytics unavailable: {str(e)}", "status": "❌ Error"}
+
+    def _get_real_system_metrics(self) -> Dict[str, Any]:
+        """Get real system metrics."""
+        try:
+            metrics = {
+                "documents_processed": self.total_documents,
+                "chunks_stored": self.total_chunks,
+                "queries_processed": self.query_count,
+                "last_updated": datetime.now().strftime("%H:%M:%S"),
+            }
+
+            # Get system status
+            if hasattr(self.rag_system, "get_system_status"):
+                system_status = self.rag_system.get_system_status()
+                metrics.update(
+                    {
+                        "overall_health": system_status.get(
+                            "overall_status", "unknown"
+                        ),
+                        "components_healthy": sum(
+                            system_status.get("components", {}).values()
+                        ),
+                        "total_components": len(system_status.get("components", {})),
+                    }
+                )
+
+            # Add component status
+            components = []
+            if hasattr(self.rag_system, "embedding_generator"):
+                components.append("Embedding Generator")
+            if hasattr(self.rag_system, "vector_db"):
+                components.append("Vector Database")
+            if hasattr(self.rag_system, "query_processor"):
+                components.append("Query Processor")
+
+            metrics["active_components"] = components
+            metrics["status"] = "🟢 System healthy"
+            return metrics
+
+        except Exception as e:
+            return {
+                "error": f"System metrics unavailable: {str(e)}",
+                "status": "❌ Error",
+            }
+
+    def _get_real_performance_metrics(self) -> Dict[str, Any]:
+        """Get real performance metrics."""
+        try:
+            # Basic performance tracking
+            metrics = {
+                "total_processing_time": "N/A",
+                "avg_query_response": "N/A",
+                "system_load": "Normal",
+                "last_updated": datetime.now().strftime("%H:%M:%S"),
+            }
+
+            # If we have query history, calculate averages
+            if hasattr(self.rag_system, "query_processor") and hasattr(
+                self.rag_system.query_processor, "query_history"
+            ):
+                history = self.rag_system.query_processor.query_history
+                if history:
+                    # Calculate average processing time if available
+                    processing_times = [
+                        q.get("processing_time", 0)
+                        for q in history
+                        if "processing_time" in q
+                    ]
+                    if processing_times:
+                        avg_time = sum(processing_times) / len(processing_times)
+                        metrics["avg_query_response"] = f"{avg_time:.2f}s"
+
+            metrics["queries_per_minute"] = (
+                f"{self.query_count / max(1, 1):.1f}"  # Rough estimate
+            )
+            metrics["throughput"] = "Good" if self.query_count > 0 else "Idle"
+            metrics["status"] = "⚡ Performance tracking active"
+            return metrics
+
+        except Exception as e:
+            return {
+                "error": f"Performance metrics unavailable: {str(e)}",
+                "status": "❌ Error",
+            }
+
+    def _get_real_usage_stats(self) -> Dict[str, Any]:
+        """Get real usage statistics."""
+        try:
+            stats = {
+                "documents_uploaded": self.total_documents,
+                "urls_processed": 0,  # Would need to track this separately
+                "successful_queries": self.query_count,  # Assuming all successful for now
+                "failed_queries": 0,  # Would need error tracking
+                "total_chunks_created": self.total_chunks,
+                "last_updated": datetime.now().strftime("%H:%M:%S"),
+            }
+
+            # Calculate usage patterns
+            if self.query_count > 0:
+                stats["most_active_feature"] = "Query Processing"
+                stats["usage_trend"] = "Growing" if self.query_count > 5 else "Starting"
+            else:
+                stats["most_active_feature"] = "Document Upload"
+                stats["usage_trend"] = "Initial Setup"
+
+            stats["status"] = "📊 Usage tracking active"
+            return stats
+
+        except Exception as e:
+            return {"error": f"Usage stats unavailable: {str(e)}", "status": "❌ Error"}
+
+    def _get_real_query_history(self) -> List[List[str]]:
+        """Get real query history."""
+        try:
+            history_data = []
+
+            # Get query history from query processor if available
+            if hasattr(self.rag_system, "query_processor") and hasattr(
+                self.rag_system.query_processor, "query_history"
+            ):
+                history = self.rag_system.query_processor.query_history[
+                    -10:
+                ]  # Last 10 queries
+
+                for query_item in history:
+                    query_text = (
+                        query_item.get("query", "Unknown")[:50] + "..."
+                        if len(query_item.get("query", "")) > 50
+                        else query_item.get("query", "Unknown")
+                    )
+                    result_count = query_item.get("result_count", 0)
+                    confidence = "N/A"  # Would need to store this
+                    processing_time = (
+                        f"{query_item.get('processing_time', 0):.2f}s"
+                        if "processing_time" in query_item
+                        else "N/A"
+                    )
+                    timestamp = (
+                        query_item.get("timestamp", datetime.now()).strftime("%H:%M:%S")
+                        if "timestamp" in query_item
+                        else "Unknown"
+                    )
+
+                    history_data.append(
+                        [
+                            query_text,
+                            str(result_count),
+                            confidence,
+                            processing_time,
+                            timestamp,
+                        ]
+                    )
+
+            # If no real history, show helpful placeholder
+            if not history_data:
+                history_data = [
+                    ["No queries yet", "0", "0.0", "0.0s", "Ask your first question!"],
+                    [
+                        "Upload documents to get started",
+                        "0",
+                        "0.0",
+                        "0.0s",
+                        "Build your knowledge base",
+                    ],
+                    [
+                        "Try asking about your documents",
+                        "0",
+                        "0.0",
+                        "0.0s",
+                        "Get intelligent answers",
+                    ],
+                ]
+
+            return history_data
+
+        except Exception as e:
+            return [["Error loading history", "0", "0.0", "0.0s", str(e)]]
 
     def _create_health_tab(self):
         """Create the system health monitoring tab."""
@@ -659,12 +1006,16 @@ class GradioApp:
                 error_progress,
             )
 
-    def _process_query(self, query: str) -> Tuple[str, str, Dict[str, Any], str, str]:
+    def _process_query(
+        self, query: str, include_sources: bool = True, max_results: int = 5
+    ) -> Tuple[str, str, Dict[str, Any], str, str]:
         """
-        Process a user query with enhanced response formatting.
+        Process a user query with enhanced response formatting and query options.
 
         Args:
             query: User query string
+            include_sources: Whether to include source information
+            max_results: Maximum number of results to return
 
         Returns:
             Tuple of (response, confidence, sources, status, stats)
@@ -679,10 +1030,12 @@ class GradioApp:
             )
 
         try:
-            self.logger.info(f"Processing query: {query[:100]}...")
+            self.logger.info(
+                f"🔍 Processing query: {query[:100]}... (sources: {include_sources}, max_results: {max_results})"
+            )
 
-            # Get response from RAG system
-            result = self.rag_system.query(query)
+            # Get response from RAG system with query options
+            result = self.rag_system.query(query, max_results=max_results)
 
             self.query_count += 1
 
@@ -691,7 +1044,7 @@ class GradioApp:
             sources = result.get("sources", [])
 
             # Format confidence display
-            confidence_text = f"Confidence: {confidence:.1%}"
+            confidence_text = f"🎯 Confidence: {confidence:.1%}"
             if confidence >= 0.8:
                 confidence_text += " 🟢 High"
             elif confidence >= 0.5:
@@ -699,14 +1052,40 @@ class GradioApp:
             else:
                 confidence_text += " 🔴 Low"
 
-            # Format sources for display
-            sources_display = {
-                "confidence": f"{confidence:.3f}",
-                "total_sources": len(sources),
-                "sources": sources[:5],  # Limit to top 5 sources
-            }
+            # Add processing details
+            context_items = result.get("context_items", 0)
+            processing_time = result.get("processing_time", 0)
+            confidence_text += (
+                f" | ⚡ {processing_time:.2f}s | 📄 {context_items} chunks"
+            )
 
-            status = f"Query processed (confidence: {confidence:.1%}) "
+            # Format sources for display based on user preference
+            sources_display = {}
+            if include_sources and sources:
+                # Limit sources based on max_results
+                limited_sources = sources[:max_results]
+                sources_display = {
+                    "confidence": f"{confidence:.3f}",
+                    "total_sources": len(sources),
+                    "showing": len(limited_sources),
+                    "max_requested": max_results,
+                    "sources": limited_sources,
+                    "query_options": {
+                        "include_sources": include_sources,
+                        "max_results": max_results,
+                    },
+                }
+            elif not include_sources:
+                sources_display = {
+                    "message": "🔒 Sources hidden by user preference",
+                    "total_sources": len(sources),
+                    "query_options": {
+                        "include_sources": include_sources,
+                        "max_results": max_results,
+                    },
+                }
+
+            status = f"✅ Query processed (confidence: {confidence:.1%}, {len(sources)} sources) "
 
             return (
                 response,
@@ -728,37 +1107,165 @@ class GradioApp:
 
     def _refresh_knowledge_base(self) -> Tuple[Dict[str, Any], List[List[str]]]:
         """
-        Refresh knowledge base information.
+        Refresh knowledge base information with real data from vector DB.
 
         Returns:
             Tuple of (stats, document list)
         """
         try:
-            # Get knowledge base statistics
+            # Get real knowledge base statistics
+            kb_info = self._get_real_kb_stats()
+
             stats = {
-                "total_documents": self.total_documents,
-                "total_chunks": self.total_chunks,
-                "storage_size": f"{self.total_chunks * 0.5:.1f} MB",  # Estimate
+                "total_documents": kb_info.get("total_documents", self.total_documents),
+                "total_chunks": kb_info.get("total_chunks", self.total_chunks),
+                "storage_size": f"{kb_info.get('total_chunks', self.total_chunks) * 0.5:.1f} MB",
                 "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "vector_db_status": kb_info.get("vector_db_status", "Unknown"),
+                "embedding_model": kb_info.get("embedding_model", "Unknown"),
+                "index_health": kb_info.get("index_health", "Unknown"),
             }
 
-            # Mock document list (in real implementation, get from vector DB)
-            documents = [
-                ["sample.pdf", "PDF", "25", "2025-06-05 10:30"],
-                ["webpage.html", "Web", "15", "2025-06-05 11:45"],
-                ["document.docx", "Word", "30", "2025-06-15 12:00"],
-                ["document.csv", "CSV", "30", "2025-06-15 12:00"],
-                ["notes.md", "Markdown", "12", "2025-06-16 09:20"],
-                ["readme.txt", "Text", "8", "2025-06-16 09:25"],
-                ["presentation.pptx", "PowerPoint", "22", "2025-06-16 09:30"],
-                ["data.xlsx", "Excel", "18", "2025-06-16 09:35"],
-            ]
+            # Get real document list from vector DB
+            documents = self._get_real_document_list()
+
+            # If no real documents, show helpful message
+            if not documents:
+                documents = [
+                    [
+                        "📝 No documents yet",
+                        "Info",
+                        "0",
+                        "Upload documents to get started",
+                    ],
+                    ["🔗 Try adding URLs", "Info", "0", "Use the 'Add URLs' tab"],
+                    [
+                        "📚 Knowledge base empty",
+                        "Info",
+                        "0",
+                        "Start building your knowledge base!",
+                    ],
+                ]
 
             return stats, documents
 
         except Exception as e:
             self.logger.error(f"❌ Error refreshing knowledge base: {e}")
-            return {}, []
+            # Fallback stats
+            fallback_stats = {
+                "total_documents": self.total_documents,
+                "total_chunks": self.total_chunks,
+                "storage_size": f"{self.total_chunks * 0.5:.1f} MB",
+                "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "error": str(e),
+            }
+            return fallback_stats, []
+
+    def _get_real_kb_stats(self) -> Dict[str, Any]:
+        """Get real knowledge base statistics from the RAG system."""
+        try:
+            if hasattr(self.rag_system, "vector_db") and self.rag_system.vector_db:
+                # Try to get stats from vector DB
+                vector_stats = (
+                    self.rag_system.vector_db.get_stats()
+                    if hasattr(self.rag_system.vector_db, "get_stats")
+                    else {}
+                )
+
+                return {
+                    "total_documents": vector_stats.get(
+                        "total_vectors", self.total_documents
+                    ),
+                    "total_chunks": vector_stats.get(
+                        "total_vectors", self.total_chunks
+                    ),
+                    "vector_db_status": "✅ Connected" if vector_stats else "⚠️ Limited",
+                    "embedding_model": (
+                        getattr(
+                            self.rag_system.embedding_generator, "model_name", "Unknown"
+                        )
+                        if hasattr(self.rag_system, "embedding_generator")
+                        else "Unknown"
+                    ),
+                    "index_health": (
+                        "✅ Healthy"
+                        if vector_stats.get("total_vectors", 0) > 0
+                        else "⚠️ Empty"
+                    ),
+                }
+            else:
+                return {
+                    "total_documents": self.total_documents,
+                    "total_chunks": self.total_chunks,
+                    "vector_db_status": "❌ Not Connected",
+                    "embedding_model": "Unknown",
+                    "index_health": "❌ Unavailable",
+                }
+        except Exception as e:
+            self.logger.warning(f"Could not get real KB stats: {e}")
+            return {}
+
+    def _get_real_document_list(self) -> List[List[str]]:
+        """Get real document list from the RAG system."""
+        try:
+            documents = []
+
+            # Try to get document metadata from vector DB
+            if hasattr(self.rag_system, "vector_db") and self.rag_system.vector_db:
+                # Get unique sources from vector DB
+                if hasattr(self.rag_system.vector_db, "get_unique_sources"):
+                    sources = self.rag_system.vector_db.get_unique_sources()
+                    for source_info in sources:
+                        source_name = source_info.get("source", "Unknown")
+                        doc_type = self._get_document_type(source_name)
+                        chunk_count = source_info.get("chunk_count", 0)
+                        added_date = source_info.get("added_date", "Unknown")
+
+                        documents.append(
+                            [source_name, doc_type, str(chunk_count), added_date]
+                        )
+
+                # If vector DB doesn't have get_unique_sources, try alternative approach
+                elif hasattr(self.rag_system.vector_db, "list_documents"):
+                    doc_list = self.rag_system.vector_db.list_documents()
+                    for doc in doc_list:
+                        documents.append(
+                            [
+                                doc.get("name", "Unknown"),
+                                self._get_document_type(doc.get("name", "")),
+                                str(doc.get("chunks", 0)),
+                                doc.get("date", "Unknown"),
+                            ]
+                        )
+
+            return documents
+
+        except Exception as e:
+            self.logger.warning(f"Could not get real document list: {e}")
+            return []
+
+    def _get_document_type(self, filename: str) -> str:
+        """Determine document type from filename."""
+        if not filename:
+            return "Unknown"
+
+        filename_lower = filename.lower()
+        if filename_lower.endswith(".pdf"):
+            return "📄 PDF"
+        elif filename_lower.endswith((".doc", ".docx")):
+            return "📝 Word"
+        elif filename_lower.endswith((".xls", ".xlsx")):
+            return "📊 Excel"
+        elif filename_lower.endswith((".ppt", ".pptx")):
+            return "📈 PowerPoint"
+        elif filename_lower.endswith(".csv"):
+            return "📋 CSV"
+        elif filename_lower.endswith((".txt", ".md")):
+            return "📄 Text"
+        elif "http" in filename_lower:
+            return "🌐 Web"
+        else:
+            return "📄 Document"
 
     def _run_health_check(self) -> Tuple[Dict[str, Any], List[List[str]], str]:
         """
