@@ -3,8 +3,8 @@
 
 # API Keys (use environment variables for security)
 api_keys:
-  gemini_api_key: "AIzaSyBQ7JGtGHmfotfXVW_YPOAs_8Uswuuse9M" # Set via GEMINI_API_KEY environment variable
-  pinecone_api_key: "pcsk_3HhTVY_CcrZfSJ6rxUEM3FBRbyGoCeo9ob8ZHH5eeaRHY8PqEDrWrgnY31qDq2cdjosMMs" # Set via PINECONE_API_KEY environment variable
+  gemini_api_key: "" # Set via GEMINI_API_KEY environment variable
+  pinecone_api_key: "" # Set via PINECONE_API_KEY environment variable
   openai_api_key: "" # Set via OPENAI_API_KEY environment variable (optional)
 
 # Vector Database Settings (Pinecone)
