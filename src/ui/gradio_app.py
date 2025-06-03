@@ -112,7 +112,7 @@ class GradioApp:
 
                 # URL Processing Tab
                 if self.enable_url_input:
-                    with gr.TabItem("Add URLs", id="url_tab"):
+                    with gr.TabItem("🔗 Add URLs", id="url_tab"):
                         url_components = self._create_url_tab()
 
                 # Query Interface Tab
@@ -129,7 +129,7 @@ class GradioApp:
                     analytics_components = self._create_analytics_tab()
 
                 # System Health Tab
-                with gr.TabItem("System Health", id="health_tab"):
+                with gr.TabItem("🩺 System Health", id="health_tab"):
                     health_components = self._create_health_tab()
 
         self.interface = interface
