@@ -9,6 +9,7 @@ Technology: Gradio
 
 import logging
 import os
+import sys
 import tempfile
 import json
 from typing import Dict, List, Any, Optional, Tuple
@@ -44,7 +45,7 @@ class GradioApp:
         """
         self.rag_system = rag_system
         self.config = config or {}
-        self.logger = logging.getLogger(__name__)
+        self.logger = self._setup_unicode_logger()
 
         # UI Configuration
         self.title = self.config.get("title", "AI Embedded Knowledge Agent")
@@ -73,7 +74,78 @@ class GradioApp:
         self.interface = None
         self._create_interface()
 
-        self.logger.info("GradioApp initialized with advanced features")
+        self._log_safe("GradioApp initialized with advanced features")
+
+    def _setup_unicode_logger(self):
+        """🔧 Setup Unicode-safe logger for cross-platform compatibility."""
+        logger = logging.getLogger(__name__)
+
+        # ✅ Configure handler with UTF-8 encoding for Windows compatibility
+        if not logger.handlers:
+            handler = logging.StreamHandler(sys.stdout)
+
+            # 🌍 Force UTF-8 encoding on Windows to handle emojis
+            if sys.platform.startswith("win"):
+                try:
+                    # ⚡ Try to reconfigure stdout with UTF-8 encoding
+                    handler.stream = open(
+                        sys.stdout.fileno(), mode="w", encoding="utf-8", buffering=1
+                    )
+                except Exception:
+                    # 🔄 Fallback to default if reconfiguration fails
+                    pass
+
+            formatter = logging.Formatter(
+                "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+            )
+            handler.setFormatter(formatter)
+            logger.addHandler(handler)
+            logger.setLevel(logging.INFO)
+
+        return logger
+
+    def _log_safe(self, message: str, level: str = "info"):
+        """🛡️ Unicode-safe logging that handles emojis on Windows."""
+        try:
+            # ✅ Try normal logging first
+            getattr(self.logger, level)(message)
+        except UnicodeEncodeError:
+            # 🔄 Fallback: Replace emojis with text equivalents
+            safe_message = self._make_message_safe(message)
+            getattr(self.logger, level)(safe_message)
+        except Exception as e:
+            # 🚨 Last resort: Plain text logging
+            plain_message = message.encode("ascii", "ignore").decode("ascii")
+            getattr(self.logger, level)(f"[ENCODING_SAFE] {plain_message}")
+
+    def _make_message_safe(self, message: str) -> str:
+        """🔄 Convert emoji characters to safe text equivalents."""
+        emoji_map = {
+            "🔍": "[SEARCH]",
+            "✅": "[SUCCESS]",
+            "❌": "[ERROR]",
+            "🚀": "[ROCKET]",
+            "📄": "[DOC]",
+            "🔗": "[LINK]",
+            "⚡": "[FAST]",
+            "🎯": "[TARGET]",
+            "🟢": "[GREEN]",
+            "🟡": "[YELLOW]",
+            "🔴": "[RED]",
+            "📊": "[CHART]",
+            "🕷️": "[SPIDER]",
+            "💡": "[IDEA]",
+            "🔄": "[REFRESH]",
+            "📚": "[BOOKS]",
+            "🩺": "[HEALTH]",
+            "📈": "[ANALYTICS]",
+        }
+
+        safe_message = message
+        for emoji, replacement in emoji_map.items():
+            safe_message = safe_message.replace(emoji, replacement)
+
+        return safe_message
 
     def _create_interface(self):
         """Create the comprehensive Gradio interface."""
@@ -540,7 +612,7 @@ class GradioApp:
             )
 
         except Exception as e:
-            self.logger.error(f"❌ Error refreshing analytics: {e}")
+            self._log_safe(f"❌ Error refreshing analytics: {e}", "error")
             return (
                 {"error": str(e)},
                 {"error": str(e)},
@@ -841,7 +913,7 @@ class GradioApp:
             return "No files uploaded.", "Ready ", self._get_stats_string()
 
         try:
-            self.logger.info(f"Processing {len(files)} uploaded files")
+            self._log_safe(f"Processing {len(files)} uploaded files")
 
             results = []
             successful = 0
@@ -884,8 +956,8 @@ class GradioApp:
             return output, status, self._get_stats_string()
 
         except Exception as e:
-            self.logger.error(f"❌ Error processing documents: {str(e)}")
-            return f"❌ Error: {str(e)}", "Error ❌", self._get_stats_string()
+            self._log_safe(f" Error processing documents: {str(e)}", "error")
+            return f" Error: {str(e)}", "Error ", self._get_stats_string()
 
     def _process_urls(
         self, urls_text: str, max_depth: int = 1, follow_links: bool = True
@@ -911,7 +983,7 @@ class GradioApp:
 
         try:
             urls = [url.strip() for url in urls_text.split("\n") if url.strip()]
-            self.logger.info(
+            self._log_safe(
                 f"Processing {len(urls)} URLs with depth={max_depth}, follow_links={follow_links}"
             )
 
@@ -997,7 +1069,7 @@ class GradioApp:
             return output, status, self._get_stats_string(), final_progress
 
         except Exception as e:
-            self.logger.error(f"❌ Error processing URLs: {str(e)}")
+            self._log_safe(f"❌ Error processing URLs: {str(e)}", "error")
             error_progress = f"❌ Error occurred during processing"
             return (
                 f"❌ Error: {str(e)}",
@@ -1030,8 +1102,9 @@ class GradioApp:
             )
 
         try:
-            self.logger.info(
-                f"🔍 Processing query: {query[:100]}... (sources: {include_sources}, max_results: {max_results})"
+            # ✅ Safe Unicode logging for Windows compatibility
+            self._log_safe(
+                f" Processing query: {query[:100]}... (sources: {include_sources}, max_results: {max_results})"
             )
 
             # Get response from RAG system with query options
@@ -1096,7 +1169,7 @@ class GradioApp:
             )
 
         except Exception as e:
-            self.logger.error(f"❌ Error processing query: {str(e)}")
+            self._log_safe(f"❌ Error processing query: {str(e)}", "error")
             return (
                 f"❌ Error: {str(e)}",
                 "Error",
@@ -1150,7 +1223,7 @@ class GradioApp:
             return stats, documents
 
         except Exception as e:
-            self.logger.error(f"❌ Error refreshing knowledge base: {e}")
+            self._log_safe(f"❌ Error refreshing knowledge base: {e}", "error")
             # Fallback stats
             fallback_stats = {
                 "total_documents": self.total_documents,
@@ -1202,7 +1275,7 @@ class GradioApp:
                     "index_health": "❌ Unavailable",
                 }
         except Exception as e:
-            self.logger.warning(f"Could not get real KB stats: {e}")
+            self._log_safe(f"Could not get real KB stats: {e}", "warning")
             return {}
 
     def _get_real_document_list(self) -> List[List[str]]:
@@ -1241,7 +1314,7 @@ class GradioApp:
             return documents
 
         except Exception as e:
-            self.logger.warning(f"Could not get real document list: {e}")
+            self._log_safe(f"Could not get real document list: {e}", "warning")
             return []
 
     def _get_document_type(self, filename: str) -> str:
@@ -1306,7 +1379,7 @@ class GradioApp:
             return system_status, components, logs
 
         except Exception as e:
-            self.logger.error(f"❌ Error running health check: {e}")
+            self._log_safe(f"❌ Error running health check: {e}", "error")
             return {}, [], f"Health check failed: {str(e)}"
 
     def _get_stats_string(self) -> str:
@@ -1321,7 +1394,7 @@ class GradioApp:
             **kwargs: Additional arguments for gr.Interface.launch()
         """
         if not self.interface:
-            self.logger.error("❌ Interface not created")
+            self._log_safe("❌ Interface not created", "error")
             return
 
         # Merge default config with provided kwargs
@@ -1334,5 +1407,5 @@ class GradioApp:
         }
         launch_config.update(kwargs)
 
-        self.logger.info(f"Launching Gradio interface with config: {launch_config}")
+        self._log_safe(f"Launching Gradio interface with config: {launch_config}")
         self.interface.launch(**launch_config)

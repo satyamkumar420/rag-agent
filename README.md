@@ -14,7 +14,7 @@ A comprehensive Retrieval-Augmented Generation (RAG) system that allows you to u
 
 ### 🚀 Advanced Features
 
-- **🤖 Multiple LLM Support**: Gemini Pro, OpenAI GPT models with automatic fallback
+- **🤖 Multiple LLM Support**: Gemini 2.5 Flash, OpenAI GPT models with automatic fallback
 - **📊 Analytics Dashboard**: Query analytics, system metrics, and performance monitoring
 - **🔍 Smart Query Processing**: Query expansion, caching, and suggestion system
 - **📚 Knowledge Base Management**: View, manage, and export your knowledge base
