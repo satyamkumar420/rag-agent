@@ -33,7 +33,7 @@ from ingestion.url_processor import URLProcessor
 from ingestion.text_extractor import TextExtractor
 from embedding.embedding_generator import EmbeddingGenerator
 from storage.vector_db import VectorDB
-from rag.query_processor import QueryProcessor
+from rag.optimized_query_processor import OptimizedQueryProcessor
 from rag.response_generator import ResponseGenerator
 from ui.gradio_app import GradioApp
 
@@ -212,7 +212,7 @@ class RAGSystem:
 
             # RAG components
             self.logger.info("Initializing RAG components...")
-            self.query_processor = QueryProcessor(
+            self.query_processor = OptimizedQueryProcessor(
                 self.embedding_generator,
                 self.vector_db,
                 self.config_manager.get_section("rag"),

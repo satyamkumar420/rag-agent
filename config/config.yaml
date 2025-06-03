@@ -1,358 +1,254 @@
-# AI Embedded Knowledge Agent Configuration
-# This file contains configuration settings for the RAG AI system
-
-# API Keys (use environment variables for security)
 api_keys:
-  gemini_api_key: "" # Set via GEMINI_API_KEY environment variable
-  pinecone_api_key: "" # Set via PINECONE_API_KEY environment variable
-  openai_api_key: "" # Set via OPENAI_API_KEY environment variable (optional)
-
-# Vector Database Settings (Pinecone)
-vector_db:
-  provider: "pinecone"
-  index_name: "rag-ai-index"
-  dimension: 3072 # Must match embedding model dimension (Gemini generates 3072-dim embeddings)
-  metric: "cosine" # Distance metric for similarity search
-  environment: "us-east-1" # Pinecone environment
-
-  # Fallback settings for when Pinecone is not available
-  fallback_provider: "memory" # Use in-memory storage as fallback
-  create_index_if_not_exists: true
-
-  # Performance settings
-  batch_size: 100 # Batch size for vector operations
-  max_retries: 3
-  retry_delay: 1
-
-# Embedding Generation Settings
-embedding:
-  model: "gemini-embedding-exp-03-07" # 🚀 Latest Gemini embedding model (March 2025)
-  batch_size: 1 # 🔧 Single request for Gemini Embedding models (API limitation)
-  max_retries: 3 # Maximum retries on API failure
-  retry_delay: 1 # Base delay between retries (seconds)
-  max_tokens: 8192 # 🎯 8K token input limit (4x improvement over previous models)
-
-  # Model-specific settings
-  task_type: "RETRIEVAL_DOCUMENT" # 📚 Task type for Gemini embeddings
-  title: "" # Optional title for embedding context
-  output_dimensionality: 3072 # ✨ Full dimension output for maximum quality
-
-  # Fallback settings
-  fallback_model: "sentence-transformers" # Fallback when API is not available
-  cache_embeddings: true # Cache embeddings to avoid re-computation
-
-# Document Processing Settings
-document_processing:
-  chunk_size: 1000 # Target size for text chunks (characters)
-  chunk_overlap: 200 # Overlap between chunks (characters)
-  min_chunk_size: 100 # Minimum chunk size (characters)
-  max_file_size_mb: 50 # Maximum file size for processing (MB)
-
-  # Supported file formats
-  supported_formats:
-    - ".pdf"
-    - ".docx"
-    - ".doc"
-    - ".csv"
-    - ".xlsx"
-    - ".xls"
-    - ".pptx"
-    - ".txt"
-    - ".md"
-
-  # Processing options
-  extract_images: false # Extract text from images in documents
-  preserve_formatting: true # Preserve document formatting
-  extract_metadata: true # Extract document metadata
-
-  # Language detection and processing
-  detect_language: true
-  supported_languages:
-    ["en", "es", "fr", "de", "it", "pt", "ru", "zh", "ja", "ko"]
-
-# URL Processing Settings
-url_processing:
-  max_depth: 1 # Maximum crawling depth
-  follow_links: true # Whether to follow links on pages
-  max_pages: 10 # Maximum number of pages to crawl
-  timeout: 10 # Request timeout (seconds)
-  user_agent: "RAG-AI-Bot/1.0"
-  respect_robots_txt: true
-
-  # Content extraction settings
-  extract_main_content: true # Extract only main content
-  remove_navigation: true # Remove navigation elements
-  remove_ads: true # Remove advertisement content
-
-  # Allowed and blocked domains
-  allowed_domains: [] # Empty means all domains allowed
-  blocked_domains:
-    - "localhost"
-    - "127.0.0.1"
-    - "0.0.0.0"
-
-  # Rate limiting
-  requests_per_second: 2
-  delay_between_requests: 0.5
-
-# RAG (Retrieval Augmented Generation) Settings
-rag:
-  # Retrieval settings
-  top_k: 5 # Number of similar documents to retrieve
-  similarity_threshold: 0.7 # Minimum similarity score for results
-  max_context_length: 4000 # Maximum length of context (characters)
-
-  # Generation settings
-  model: "gemini-2.5-flash-preview-05-20" # Primary language model for response generation
-  fallback_model: "gpt-3.5-turbo" # Fallback model
-  max_tokens: 500 # Maximum tokens in response
-  temperature: 0.7 # Sampling temperature for generation
-  top_p: 0.9 # Top-p sampling parameter
-
-  # Response settings
-  include_sources: true # Whether to include source attribution
-  confidence_threshold: 0.3 # Minimum confidence for responses
-  max_response_length: 2000 # Maximum response length
-
-  # Query processing
-  enable_query_expansion: true # Expand queries for better retrieval
-  enable_query_caching: true # Cache query results
-  query_cache_ttl: 3600 # Query cache time-to-live (seconds)
-
-  # Context processing
-  rerank_results: true # Re-rank retrieved results
-  deduplicate_results: true # Remove duplicate results
-  context_window_overlap: 0.1 # Overlap between context windows
-
-# User Interface Settings
-ui:
-  title: "🧠 AI Embedded Knowledge Agent"
-  description: "Upload documents or provide URLs to build your knowledge base, then ask questions!"
-  theme: "default" # Gradio theme (default, huggingface, etc.)
-  share: false # Whether to create a public Gradio link
-  port: 7860 # Port for the Gradio interface
-  server_name: "0.0.0.0" # Server name for hosting
-
-  # UI Features
-  features:
-    file_upload: true
-    url_input: true
-    query_interface: true
-    source_display: true
-    confidence_display: true
-    analytics_dashboard: true
-    knowledge_base_management: true
-    system_health_monitoring: true
-
-  # Interface customization
-  max_file_uploads: 10 # Maximum number of files per upload
-  max_query_length: 1000 # Maximum query length
-  show_advanced_options: true # Show advanced configuration options
-
-  # Demo mode settings
-  demo_mode: false # Enable demo mode with sample data
-  sample_documents: [] # List of sample documents to load
-
-# Logging Settings
-logging:
-  level: "INFO" # Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-  file: "logs/rag_ai.log" # Log file path (optional)
-  max_file_size_mb: 10 # Maximum log file size (MB)
-  backup_count: 5 # Number of backup log files to keep
-
-  # Component-specific logging
-  component_levels:
-    embedding: "INFO"
-    vector_db: "INFO"
-    rag: "INFO"
-    ui: "INFO"
-    document_processing: "INFO"
-    url_processing: "INFO"
-
-# Performance Settings
-performance:
-  enable_caching: true # Enable result caching
-  cache_ttl: 3600 # Cache time-to-live (seconds)
-  max_concurrent_requests: 5 # Maximum concurrent API requests
-  request_timeout: 30 # Request timeout (seconds)
-
-  # Memory management
-  max_memory_usage_mb: 1024 # Maximum memory usage (MB)
-  garbage_collection_interval: 300 # GC interval (seconds)
-
-  # Processing optimization
-  enable_parallel_processing: true
-  max_worker_threads: 4
-  batch_processing_size: 10
-
-# Security Settings
-security:
-  max_upload_size_mb: 100 # Maximum upload size (MB)
-  allowed_domains: [] # Allowed domains for URL processing (empty = all)
-  blocked_domains: # Blocked domains for URL processing
-    - "localhost"
-    - "127.0.0.1"
-    - "0.0.0.0"
-  sanitize_input: true # Whether to sanitize user input
-
-  # Content filtering
-  enable_content_filtering: true
-  blocked_content_types: ["executable", "script"]
-  max_text_length: 1000000 # Maximum text length to process
-
-  # Rate limiting
-  enable_rate_limiting: true
-  requests_per_minute: 60
-  requests_per_hour: 1000
-
-# Development Settings
-development:
-  debug_mode: false # Enable debug mode
-  mock_apis: false # Use mock APIs for testing
-  save_intermediate_results: false # Save intermediate processing results
-  profiling_enabled: false # Enable performance profiling
-
-  # Testing settings
-  test_mode: false
-  test_data_path: "data/test_data"
-  enable_test_endpoints: false
-
-# Deployment Settings (for Hugging Face Spaces)
-deployment:
-  platform: "huggingface" # Deployment platform
-  auto_scale: true # Enable auto-scaling
-  health_check_interval: 60 # Health check interval (seconds)
-  graceful_shutdown_timeout: 30 # Graceful shutdown timeout (seconds)
-
-  # Resource limits
-  max_memory_mb: 2048 # Maximum memory usage (MB)
-  max_cpu_percent: 80 # Maximum CPU usage (%)
-  max_disk_usage_mb: 5120 # Maximum disk usage (MB)
-
-  # Monitoring
-  enable_metrics: true
-  metrics_endpoint: "/metrics"
-  health_endpoint: "/health"
-
-  # Environment-specific settings
-  production:
-    log_level: "WARNING"
-    debug_mode: false
-    enable_profiling: false
-
-  staging:
-    log_level: "INFO"
-    debug_mode: true
-    enable_profiling: true
-
-  development:
-    log_level: "DEBUG"
-    debug_mode: true
-    enable_profiling: true
-
-# Feature Flags
-features:
-  # Core features
-  document_upload: true
-  url_processing: true
-  query_processing: true
-
-  # Advanced features
-  batch_processing: true
-  async_processing: false # Enable asynchronous processing
-  real_time_updates: false # Enable real-time UI updates
-
-  # Experimental features
-  multi_language_support: false
-  image_processing: false
-  audio_processing: false
-  video_processing: false
-
-  # AI features
-  auto_summarization: false
-  question_generation: false
-  content_recommendation: false
-
-# Integration Settings
-integrations:
-  # External APIs
-  huggingface:
-    enabled: false
-    api_key: "" # Set via HUGGINGFACE_API_KEY
-    models: []
-
-  # Databases
-  postgresql:
-    enabled: false
-    connection_string: "" # Set via DATABASE_URL
-
-  # Cloud storage
-  aws_s3:
-    enabled: false
-    bucket_name: ""
-    access_key: "" # Set via AWS_ACCESS_KEY_ID
-    secret_key: "" # Set via AWS_SECRET_ACCESS_KEY
-
-  # Monitoring
-  sentry:
-    enabled: false
-    dsn: "" # Set via SENTRY_DSN
-
-  # Analytics
-  google_analytics:
-    enabled: false
-    tracking_id: "" # Set via GA_TRACKING_ID
-
-# Backup and Recovery
+  gemini_api_key: ''
+  openai_api_key: ''
+  pinecone_api_key: ''
 backup:
   enabled: false
-  interval_hours: 24 # Backup interval (hours)
-  retention_days: 30 # Backup retention (days)
-  storage_path: "backups/"
-
-  # What to backup
-  include_vector_db: true
-  include_documents: true
   include_configuration: true
+  include_documents: true
   include_logs: false
-
-# Notifications
+  include_vector_db: true
+  interval_hours: 24
+  retention_days: 30
+  storage_path: backups/
+customization:
+  custom_css: ''
+  default_query_examples:
+  - What is the main topic of the uploaded documents?
+  - Can you summarize the key points?
+  - What are the important findings mentioned?
+  favicon_url: ''
+  footer_text: ''
+  help_text: ''
+  logo_url: ''
+  welcome_message: ''
+deployment:
+  auto_scale: true
+  development:
+    debug_mode: true
+    enable_profiling: true
+    log_level: DEBUG
+  enable_metrics: true
+  graceful_shutdown_timeout: 30
+  health_check_interval: 60
+  health_endpoint: /health
+  max_cpu_percent: 80
+  max_disk_usage_mb: 5120
+  max_memory_mb: 2048
+  metrics_endpoint: /metrics
+  platform: huggingface
+  production:
+    debug_mode: false
+    enable_profiling: false
+    log_level: WARNING
+  staging:
+    debug_mode: true
+    enable_profiling: true
+    log_level: INFO
+development:
+  debug_mode: false
+  enable_test_endpoints: false
+  mock_apis: false
+  profiling_enabled: false
+  save_intermediate_results: false
+  test_data_path: data/test_data
+  test_mode: false
+document_processing:
+  chunk_overlap: 200
+  chunk_size: 1000
+  detect_language: true
+  extract_images: false
+  extract_metadata: true
+  max_file_size_mb: 50
+  min_chunk_size: 100
+  preserve_formatting: true
+  supported_formats:
+  - .pdf
+  - .docx
+  - .doc
+  - .csv
+  - .xlsx
+  - .xls
+  - .pptx
+  - .txt
+  - .md
+  supported_languages:
+  - en
+  - es
+  - fr
+  - de
+  - it
+  - pt
+  - ru
+  - zh
+  - ja
+  - ko
+embedding:
+  batch_size: 1
+  cache_embeddings: true
+  fallback_model: sentence-transformers
+  max_retries: 3
+  max_tokens: 8192
+  model: gemini-embedding-exp-03-07
+  output_dimensionality: 3072
+  rate_limit_delay: 1.0
+  retry_delay: 2
+  task_type: RETRIEVAL_DOCUMENT
+  title: ''
+features:
+  async_processing: false
+  audio_processing: false
+  auto_summarization: false
+  batch_processing: true
+  content_recommendation: false
+  document_upload: true
+  image_processing: false
+  multi_language_support: false
+  query_processing: true
+  question_generation: false
+  real_time_updates: false
+  url_processing: true
+  video_processing: false
+integrations:
+  aws_s3:
+    access_key: ''
+    bucket_name: ''
+    enabled: false
+    secret_key: ''
+  google_analytics:
+    enabled: false
+    tracking_id: ''
+  huggingface:
+    api_key: ''
+    enabled: false
+    models: []
+  postgresql:
+    connection_string: ''
+    enabled: false
+  sentry:
+    dsn: ''
+    enabled: false
+logging:
+  backup_count: 5
+  component_levels:
+    document_processing: INFO
+    embedding: INFO
+    rag: INFO
+    ui: INFO
+    url_processing: INFO
+    vector_db: INFO
+  file: logs/rag_ai.log
+  format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+  level: INFO
+  max_file_size_mb: 10
 notifications:
-  enabled: false
-
-  # Email notifications
   email:
     enabled: false
-    smtp_server: ""
+    from_address: ''
+    password: ''
     smtp_port: 587
-    username: ""
-    password: "" # Set via EMAIL_PASSWORD
-    from_address: ""
+    smtp_server: ''
     to_addresses: []
-
-  # Webhook notifications
+    username: ''
+  enabled: false
   webhook:
     enabled: false
-    url: ""
-    events: ["error", "system_health", "processing_complete"]
-
-# Customization
-customization:
-  # Branding
-  logo_url: ""
-  favicon_url: ""
-  custom_css: ""
-
-  # Content
-  welcome_message: ""
-  help_text: ""
-  footer_text: ""
-
-  # Behavior
-  default_query_examples:
-    [
-      "What is the main topic of the uploaded documents?",
-      "Can you summarize the key points?",
-      "What are the important findings mentioned?",
-    ]
+    events:
+    - error
+    - system_health
+    - processing_complete
+    url: ''
+performance:
+  batch_processing_size: 10
+  cache_ttl: 3600
+  enable_caching: true
+  enable_parallel_processing: true
+  garbage_collection_interval: 300
+  max_concurrent_requests: 5
+  max_memory_usage_mb: 1024
+  max_worker_threads: 4
+  request_timeout: 30
+rag:
+  confidence_threshold: 0.3
+  context_window_overlap: 0.1
+  deduplicate_results: true
+  enable_query_caching: true
+  enable_query_expansion: true
+  fallback_model: gpt-3.5-turbo
+  include_sources: true
+  max_context_length: 8000
+  max_response_length: 2000
+  max_tokens: 500
+  model: gemini-2.5-flash-preview-05-20
+  query_cache_ttl: 7200
+  rerank_results: true
+  similarity_threshold: 0.4
+  temperature: 0.7
+  top_k: 10
+  top_p: 0.9
+security:
+  allowed_domains: []
+  blocked_content_types:
+  - executable
+  - script
+  blocked_domains:
+  - localhost
+  - 127.0.0.1
+  - 0.0.0.0
+  enable_content_filtering: true
+  enable_rate_limiting: true
+  max_text_length: 1000000
+  max_upload_size_mb: 100
+  requests_per_hour: 1000
+  requests_per_minute: 60
+  sanitize_input: true
+ui:
+  demo_mode: false
+  description: Upload documents or provide URLs to build your knowledge base, then
+    ask questions!
+  features:
+    analytics_dashboard: true
+    confidence_display: true
+    file_upload: true
+    knowledge_base_management: true
+    query_interface: true
+    source_display: true
+    system_health_monitoring: true
+    url_input: true
+  max_file_uploads: 10
+  max_query_length: 1000
+  port: 7860
+  sample_documents: []
+  server_name: 0.0.0.0
+  share: false
+  show_advanced_options: true
+  theme: default
+  title: "\xF0\u0178\xA7\_ AI Embedded Knowledge Agent"
+url_processing:
+  allowed_domains: []
+  blocked_domains:
+  - localhost
+  - 127.0.0.1
+  - 0.0.0.0
+  delay_between_requests: 0.5
+  extract_main_content: true
+  follow_links: true
+  max_depth: 1
+  max_pages: 10
+  remove_ads: true
+  remove_navigation: true
+  requests_per_second: 2
+  respect_robots_txt: true
+  timeout: 10
+  user_agent: RAG-AI-Bot/1.0
+vector_db:
+  batch_size: 100
+  create_index_if_not_exists: true
+  dimension: 3072
+  environment: us-east-1
+  fallback_provider: memory
+  index_name: rag-ai-index
+  max_retries: 3
+  metric: cosine
+  provider: pinecone
+  retry_delay: 1

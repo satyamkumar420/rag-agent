@@ -139,7 +139,7 @@ class GradioApp:
         with gr.Row():
             with gr.Column(scale=1):
                 gr.Markdown("### Upload Documents")
-                gr.Markdown("Supported formats: PDF, DOCX, CSV, XLSX, PPTX")
+                gr.Markdown("Supported formats: PDF, DOCX, CSV, XLSX, PPTX, TXT, MD")
 
                 file_upload = gr.File(
                     label="Select Files",
@@ -650,9 +650,14 @@ class GradioApp:
 
             # Mock document list (in real implementation, get from vector DB)
             documents = [
-                ["sample.pdf", "PDF", "25", "2024-01-15 10:30"],
-                ["webpage.html", "Web", "15", "2024-01-15 11:45"],
-                ["document.docx", "Word", "30", "2024-01-15 12:00"],
+                ["sample.pdf", "PDF", "25", "2025-06-05 10:30"],
+                ["webpage.html", "Web", "15", "2025-06-05 11:45"],
+                ["document.docx", "Word", "30", "2025-06-15 12:00"],
+                ["document.csv", "CSV", "30", "2025-06-15 12:00"],
+                ["notes.md", "Markdown", "12", "2025-06-16 09:20"],
+                ["readme.txt", "Text", "8", "2025-06-16 09:25"],
+                ["presentation.pptx", "PowerPoint", "22", "2025-06-16 09:30"],
+                ["data.xlsx", "Excel", "18", "2025-06-16 09:35"],
             ]
 
             return stats, documents
