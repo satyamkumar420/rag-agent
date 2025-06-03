@@ -6,7 +6,7 @@ A comprehensive Retrieval-Augmented Generation (RAG) system that allows you to u
 
 ### 🔥 Core Capabilities
 
-- **📄 Document Processing**: Support for PDF, DOCX, CSV, XLSX, PPTX, and more
+- **📄 Document Processing**: Support for PDF, DOCX, CSV, XLSX, PPTX, TXT, MD, and more
 - **🌐 URL Processing**: Extract content from web pages with intelligent crawling
 - **🧠 Smart Q&A**: Ask questions and get contextual answers with source attribution
 - **🎯 High Accuracy**: Advanced embedding and similarity search for precise results

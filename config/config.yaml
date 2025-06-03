@@ -1,7 +1,7 @@
 api_keys:
-  gemini_api_key: ''
-  openai_api_key: ''
-  pinecone_api_key: ''
+  gemini_api_key: ""
+  openai_api_key: ""
+  pinecone_api_key: ""
 backup:
   enabled: false
   include_configuration: true
@@ -12,16 +12,16 @@ backup:
   retention_days: 30
   storage_path: backups/
 customization:
-  custom_css: ''
+  custom_css: ""
   default_query_examples:
-  - What is the main topic of the uploaded documents?
-  - Can you summarize the key points?
-  - What are the important findings mentioned?
-  favicon_url: ''
-  footer_text: ''
-  help_text: ''
-  logo_url: ''
-  welcome_message: ''
+    - What is the main topic of the uploaded documents?
+    - Can you summarize the key points?
+    - What are the important findings mentioned?
+  favicon_url: ""
+  footer_text: ""
+  help_text: ""
+  logo_url: ""
+  welcome_message: ""
 deployment:
   auto_scale: true
   development:
@@ -63,26 +63,26 @@ document_processing:
   min_chunk_size: 100
   preserve_formatting: true
   supported_formats:
-  - .pdf
-  - .docx
-  - .doc
-  - .csv
-  - .xlsx
-  - .xls
-  - .pptx
-  - .txt
-  - .md
+    - .pdf
+    - .docx
+    - .doc
+    - .csv
+    - .xlsx
+    - .xls
+    - .pptx
+    - .txt
+    - .md
   supported_languages:
-  - en
-  - es
-  - fr
-  - de
-  - it
-  - pt
-  - ru
-  - zh
-  - ja
-  - ko
+    - en
+    - es
+    - fr
+    - de
+    - it
+    - pt
+    - ru
+    - zh
+    - ja
+    - ko
 embedding:
   batch_size: 1
   cache_embeddings: true
@@ -94,7 +94,7 @@ embedding:
   rate_limit_delay: 1.0
   retry_delay: 2
   task_type: RETRIEVAL_DOCUMENT
-  title: ''
+  title: ""
 features:
   async_processing: false
   audio_processing: false
@@ -111,22 +111,22 @@ features:
   video_processing: false
 integrations:
   aws_s3:
-    access_key: ''
-    bucket_name: ''
+    access_key: ""
+    bucket_name: ""
     enabled: false
-    secret_key: ''
+    secret_key: ""
   google_analytics:
     enabled: false
-    tracking_id: ''
+    tracking_id: ""
   huggingface:
-    api_key: ''
+    api_key: ""
     enabled: false
     models: []
   postgresql:
-    connection_string: ''
+    connection_string: ""
     enabled: false
   sentry:
-    dsn: ''
+    dsn: ""
     enabled: false
 logging:
   backup_count: 5
@@ -138,26 +138,26 @@ logging:
     url_processing: INFO
     vector_db: INFO
   file: logs/rag_ai.log
-  format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
   level: INFO
   max_file_size_mb: 10
 notifications:
   email:
     enabled: false
-    from_address: ''
-    password: ''
+    from_address: ""
+    password: ""
     smtp_port: 587
-    smtp_server: ''
+    smtp_server: ""
     to_addresses: []
-    username: ''
+    username: ""
   enabled: false
   webhook:
     enabled: false
     events:
-    - error
-    - system_health
-    - processing_complete
-    url: ''
+      - error
+      - system_health
+      - processing_complete
+    url: ""
 performance:
   batch_processing_size: 10
   cache_ttl: 3600
@@ -189,12 +189,12 @@ rag:
 security:
   allowed_domains: []
   blocked_content_types:
-  - executable
-  - script
+    - executable
+    - script
   blocked_domains:
-  - localhost
-  - 127.0.0.1
-  - 0.0.0.0
+    - localhost
+    - 127.0.0.1
+    - 0.0.0.0
   enable_content_filtering: true
   enable_rate_limiting: true
   max_text_length: 1000000
@@ -204,7 +204,8 @@ security:
   sanitize_input: true
 ui:
   demo_mode: false
-  description: Upload documents or provide URLs to build your knowledge base, then
+  description:
+    Upload documents or provide URLs to build your knowledge base, then
     ask questions!
   features:
     analytics_dashboard: true
@@ -227,9 +228,9 @@ ui:
 url_processing:
   allowed_domains: []
   blocked_domains:
-  - localhost
-  - 127.0.0.1
-  - 0.0.0.0
+    - localhost
+    - 127.0.0.1
+    - 0.0.0.0
   delay_between_requests: 0.5
   extract_main_content: true
   follow_links: true

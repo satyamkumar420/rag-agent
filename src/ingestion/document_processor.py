@@ -52,7 +52,8 @@ class DocumentProcessor:
         # Configuration settings
         self.max_file_size_mb = self.config.get("max_file_size_mb", 50)
         self.supported_formats = self.config.get(
-            "supported_formats", [".pdf", ".docx", ".csv", ".xlsx", ".xls", ".pptx"]
+            "supported_formats",
+            [".pdf", ".docx", ".csv", ".xlsx", ".xls", ".pptx", ".txt", ".md"],
         )
 
     @error_handler(ErrorType.DOCUMENT_PROCESSING)
@@ -96,6 +97,8 @@ class DocumentProcessor:
                 return self._process_spreadsheet(file_path)
             elif file_extension == ".pptx":
                 return self._process_pptx(file_path)
+            elif file_extension in [".txt", ".md"]:
+                return self._process_text_file(file_path)
         except Exception as e:
             raise DocumentProcessingError(
                 f"Error processing document: {str(e)}", file_path
@@ -474,3 +477,192 @@ class DocumentProcessor:
 
         except Exception as e:
             raise DocumentProcessingError(f"Error processing PPTX: {str(e)}", file_path)
+
+    def _process_text_file(self, file_path: str) -> Dict[str, Any]:
+        """
+        📝 Extract text from plain text files (.txt, .md).
+
+        Args:
+            file_path: Path to the text file
+
+        Returns:
+            Dictionary with extracted text and metadata
+        """
+        file_extension = os.path.splitext(file_path)[1].lower()
+        self.logger.info(f" Processing text file: {file_path}")
+
+        try:
+            metadata = self._extract_metadata(file_path)
+
+            # Try different encodings for robust text reading
+            encodings = ["utf-8", "utf-8-sig", "latin-1", "cp1252"]
+            content = None
+
+            for encoding in encodings:
+                try:
+                    with open(file_path, "r", encoding=encoding) as file:
+                        content = file.read()
+                    self.logger.info(
+                        f" Successfully read file with {encoding} encoding"
+                    )
+                    break
+                except UnicodeDecodeError:
+                    continue
+                except Exception as e:
+                    self.logger.warning(f"Failed to read with {encoding}: {str(e)}")
+                    continue
+
+            if content is None:
+                raise DocumentProcessingError(
+                    f"Could not read file with any supported encoding", file_path
+                )
+
+            # Clean and process content
+            content = content.strip()
+            if not content:
+                raise DocumentProcessingError(
+                    f"File is empty or contains no readable text", file_path
+                )
+
+            # Split content into logical sections for better processing
+            sections = []
+            if file_extension == ".md":
+                # 📋 For Markdown files, split by headers
+                sections = self._split_markdown_content(content)
+            else:
+                # 📄 For plain text, split by paragraphs
+                sections = self._split_text_content(content)
+
+            # Update metadata with text-specific information
+            lines = content.split("\n")
+            metadata.update(
+                {
+                    "file_type": (
+                        "markdown" if file_extension == ".md" else "plain_text"
+                    ),
+                    "line_count": len(lines),
+                    "paragraph_count": len(
+                        [p for p in content.split("\n\n") if p.strip()]
+                    ),
+                    "total_characters": len(content),
+                    "total_words": len(content.split()),
+                    "encoding_used": encoding if "encoding" in locals() else "utf-8",
+                    "sections_count": len(sections),
+                }
+            )
+
+            return {
+                "content": content,
+                "sections": sections,
+                "metadata": metadata,
+                "source": file_path,
+                "document_type": "markdown" if file_extension == ".md" else "text",
+            }
+
+        except Exception as e:
+            raise DocumentProcessingError(
+                f"Error processing text file: {str(e)}", file_path
+            )
+
+    def _split_markdown_content(self, content: str) -> List[Dict[str, Any]]:
+        """
+        Split Markdown content by headers for better organization.
+
+        Args:
+            content: Markdown content
+
+        Returns:
+            List of sections with headers and content
+        """
+        sections = []
+        lines = content.split("\n")
+        current_section = {"header": "", "content": [], "level": 0}
+
+        for line in lines:
+            # Check for markdown headers
+            if line.strip().startswith("#"):
+                # Save previous section if it has content
+                if current_section["content"] or current_section["header"]:
+                    section_content = "\n".join(current_section["content"]).strip()
+                    if section_content or current_section["header"]:
+                        sections.append(
+                            {
+                                "header": current_section["header"],
+                                "content": section_content,
+                                "level": current_section["level"],
+                                "section_index": len(sections),
+                            }
+                        )
+
+                # Start new section
+                header_level = len(line) - len(line.lstrip("#"))
+                header_text = line.lstrip("#").strip()
+                current_section = {
+                    "header": header_text,
+                    "content": [],
+                    "level": header_level,
+                }
+            else:
+                current_section["content"].append(line)
+
+        # Add the last section
+        if current_section["content"] or current_section["header"]:
+            section_content = "\n".join(current_section["content"]).strip()
+            if section_content or current_section["header"]:
+                sections.append(
+                    {
+                        "header": current_section["header"],
+                        "content": section_content,
+                        "level": current_section["level"],
+                        "section_index": len(sections),
+                    }
+                )
+
+        # If no headers found, treat entire content as one section
+        if not sections:
+            sections.append(
+                {
+                    "header": "Document Content",
+                    "content": content.strip(),
+                    "level": 1,
+                    "section_index": 0,
+                }
+            )
+
+        return sections
+
+    def _split_text_content(self, content: str) -> List[Dict[str, Any]]:
+        """
+        Split plain text content by paragraphs.
+
+        Args:
+            content: Plain text content
+
+        Returns:
+            List of paragraph sections
+        """
+        sections = []
+        paragraphs = [p.strip() for p in content.split("\n\n") if p.strip()]
+
+        for i, paragraph in enumerate(paragraphs):
+            sections.append(
+                {
+                    "header": f"Paragraph {i + 1}",
+                    "content": paragraph,
+                    "level": 1,
+                    "section_index": i,
+                }
+            )
+
+        # If no clear paragraphs, treat as single section
+        if not sections:
+            sections.append(
+                {
+                    "header": "Document Content",
+                    "content": content.strip(),
+                    "level": 1,
+                    "section_index": 0,
+                }
+            )
+
+        return sections

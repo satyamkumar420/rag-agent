@@ -139,7 +139,7 @@ class GradioApp:
         with gr.Row():
             with gr.Column(scale=1):
                 gr.Markdown("### Upload Documents")
-                gr.Markdown("Supported formats: PDF, DOCX, CSV, XLSX, PPTX, TXT, MD")
+                gr.Markdown("✅ Supported formats: PDF, DOCX, CSV, XLSX, PPTX, TXT, MD")
 
                 file_upload = gr.File(
                     label="Select Files",
