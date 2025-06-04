@@ -49,11 +49,11 @@ class ResponseGenerator:
 
         self._initialize_llm_providers()
 
-        # Response templates
+        # Response templates with markdown formatting
         self.response_templates = {
-            "no_context": "I don't have enough information to answer your question. Please try uploading relevant documents or providing URLs.",
-            "error": "I encountered an error while generating the response. Please try again.",
-            "insufficient_confidence": "Based on the available information, I found some relevant content, but I'm not confident enough to provide a definitive answer.",
+            "no_context": "## ℹ️ No Information Available\n\nI don't have enough information to answer your question. Please try:\n\n- **Uploading relevant documents** using the Upload tab\n- **Adding URLs** using the Add URLs tab\n- **Enabling live search** for real-time web results",
+            "error": "## ⚠️ Error Occurred\n\nI encountered an error while generating the response. Please try again.\n\nIf the problem persists, check your API keys in the Settings tab.",
+            "insufficient_confidence": "## 🤔 Limited Confidence\n\nBased on the available information, I found some relevant content, but I'm **not confident enough** to provide a definitive answer.\n\n**Suggestions:**\n- Try rephrasing your question\n- Add more specific documents\n- Enable live search for additional context",
         }
 
         self.logger.info("ResponseGenerator initialized with advanced features")
@@ -270,7 +270,7 @@ class ResponseGenerator:
 
     def _create_rag_prompt(self, query: str, context: str) -> str:
         """
-        Create an enhanced prompt template for RAG generation.
+        Create an enhanced prompt template for RAG generation with markdown formatting.
 
         Args:
             query: User query
@@ -287,6 +287,7 @@ class ResponseGenerator:
 4. Be concise but comprehensive
 5. If multiple sources provide different information, acknowledge this
 6. Use a professional and helpful tone
+7. **Format your response in clean, readable Markdown**
 
 Context Information:
 {context}
@@ -294,10 +295,16 @@ Context Information:
 Question: {query}
 
 Instructions:
-- Provide a clear, well-structured answer
+- Provide a clear, well-structured answer using **Markdown formatting**
+- Use headers (##, ###) to organize sections
+- Use **bold** for important points
+- Use bullet points (-) or numbered lists (1.) for clarity
+- Use `code blocks` for technical terms or specific data
 - Include relevant details from the context
 - If uncertain, express the level of confidence
 - Do not make up information not present in the context
+
+Format your response in Markdown with proper structure and formatting.
 
 Answer:"""
 
@@ -331,21 +338,25 @@ Answer:"""
                 "model": "fallback",
             }
 
-        # Create a structured response
+        # Create a structured markdown response
         response_parts = [
-            f"Based on the available information regarding '{query}':",
+            f"## Answer to: {query}",
+            "",
+            "Based on the available information:",
             "",
         ]
 
-        # Add key information
+        # Add key information as markdown list
         for i, line in enumerate(relevant_lines[:3]):  # Limit to 3 most relevant
             if len(line) > 50:  # Only include substantial content
-                response_parts.append(f"• {line}")
+                response_parts.append(f"- {line}")
 
         response_parts.extend(
             [
                 "",
-                "Note: This response is generated using available context. For more detailed analysis, please ensure proper language model integration.",
+                "---",
+                "",
+                "**Note:** This response is generated using available context. For more detailed analysis, please ensure proper language model integration.",
             ]
         )
 

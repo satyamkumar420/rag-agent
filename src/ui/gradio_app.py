@@ -453,11 +453,10 @@ class GradioApp:
             with gr.Column(scale=1):
                 gr.Markdown("### 💬 Answer")
 
-                response_output = gr.Textbox(
+                response_output = gr.Markdown(
                     label="Response",
-                    lines=10,
-                    interactive=False,
-                    placeholder="Your answer will appear here...",
+                    value="Your answer will appear here...",
+                    height=400,
                 )
 
                 confidence_display = gr.Textbox(
