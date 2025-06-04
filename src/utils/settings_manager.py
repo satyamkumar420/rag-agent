@@ -523,7 +523,7 @@ class SettingsManager:
             genai.configure(api_key=api_key)
 
             # 🧪 Simple test call
-            model = genai.GenerativeModel("gemini-pro")
+            model = genai.GenerativeModel("gemini-2.5-flash-preview-05-20")
             response = model.generate_content("Hello")
 
             if response and response.text:
