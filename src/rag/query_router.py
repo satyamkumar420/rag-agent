@@ -131,15 +131,17 @@ class QueryRouter:
         use_live_search: bool = False,
         max_results: int = 5,
         search_options: Optional[Dict[str, Any]] = None,
+        search_mode: str = "auto",
     ) -> Dict[str, Any]:
         """
-        Route query to appropriate search method(s).
+        Route query to appropriate search method(s) with enhanced control.
 
         Args:
             query: User query string
-            use_live_search: Force live search usage
+            use_live_search: Enable live search (will use hybrid approach)
             max_results: Maximum results to return
             search_options: Additional search options
+            search_mode: Search mode - "auto", "local_only", "live_only", "hybrid"
 
         Returns:
             Dictionary with routed results and metadata
@@ -159,9 +161,9 @@ class QueryRouter:
             # 🎯 Classify query type
             query_type = self._classify_query(query)
 
-            # 🔄 Make routing decision
-            routing_decision = self._make_routing_decision(
-                query, query_type, use_live_search
+            # 🔄 Make routing decision with enhanced logic
+            routing_decision = self._make_enhanced_routing_decision(
+                query, query_type, use_live_search, search_mode
             )
 
             # 🚀 Execute search based on routing decision
@@ -246,21 +248,25 @@ class QueryRouter:
         Args:
             query: Query string
             query_type: Classified query type
-            force_live: Whether to force live search
+            force_live: Whether to enable live search (not force only live)
 
         Returns:
             Routing decision string
         """
-        # 🚀 Force live search if requested
+        # 🔄 Smart hybrid approach when live search is enabled
         if force_live:
-            return "live_only"
+            # ✨ Instead of live_only, use hybrid to combine both sources
+            if query_type == QueryType.TEMPORAL:
+                return "hybrid"  # ⏰ Time-sensitive + stored context
+            else:
+                return "hybrid"  # 🎯 Always combine live + stored data
 
-        # 🎯 Route based on query type
+        # 🎯 Route based on query type (when live search is disabled)
         if query_type == QueryType.TEMPORAL:
-            return "live_only"  # ⏰ Time-sensitive info needs live search
+            return "local_only"  # ⏰ Only stored data when live disabled
 
         elif query_type == QueryType.FACTUAL:
-            return "hybrid"  # 📊 Facts benefit from both sources
+            return "local_only"  # 📊 Facts from stored documents
 
         elif query_type == QueryType.PROCEDURAL:
             return "local_only"  # 🔧 Procedures likely in documents
@@ -269,10 +275,41 @@ class QueryRouter:
             return "local_only"  # 💡 Concepts likely in documents
 
         elif query_type == QueryType.ANALYTICAL:
-            return "hybrid"  # 📈 Analysis benefits from both
+            return "local_only"  # 📈 Analysis from stored data
 
         else:  # QueryType.HYBRID
-            return "hybrid"  # 🔄 Default to hybrid
+            return "local_only"  # 🔄 Default to local when live disabled
+
+    def _make_enhanced_routing_decision(
+        self, query: str, query_type: QueryType, use_live_search: bool, search_mode: str
+    ) -> str:
+        """
+        Enhanced routing decision with explicit search mode control.
+
+        Args:
+            query: Query string
+            query_type: Classified query type
+            use_live_search: Whether live search is enabled
+            search_mode: Explicit search mode preference
+
+        Returns:
+            Routing decision string
+        """
+        # 🎯 Explicit mode override - user ka choice priority
+        if search_mode == "local_only":
+            return "local_only"
+        elif search_mode == "live_only":
+            return "live_only" if self.live_processor.is_enabled() else "local_only"
+        elif search_mode == "hybrid":
+            return "hybrid" if self.live_processor.is_enabled() else "local_only"
+
+        # 🧠 Auto mode - intelligent decision making
+        elif search_mode == "auto":
+            return self._make_routing_decision(query, query_type, use_live_search)
+
+        # 🔄 Fallback to original logic
+        else:
+            return self._make_routing_decision(query, query_type, use_live_search)
 
     def _search_local_only(self, query: str, max_results: int) -> Dict[str, Any]:
         """Search only local documents."""

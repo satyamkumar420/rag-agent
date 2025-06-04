@@ -151,7 +151,7 @@ class GradioApp:
             "📚": "[BOOKS]",
             "🩺": "[HEALTH]",
             "📈": "[ANALYTICS]",
-            "🌐": "[LIVE]",  # ✅ Added the problematic emoji
+            "🌐": "[LIVE]",
             "🌍": "[WORLD]",
             "🔧": "[TOOL]",
             "🛡️": "[SHIELD]",
@@ -174,10 +174,11 @@ class GradioApp:
             "❓": "[QUESTION]",
             "🪲": "[BUG]",
             "🪃": "[BOOMERANG]",
-            "🛡️": "[SHIELD]",
             "📘": "[BOOK]",
             "🧹": "[BROOM]",
             "🔬": "[MICROSCOPE]",
+            "🤖": "[ROBOT]",  # Added for Auto mode
+            "🔄": "[HYBRID]",  # Added for Hybrid mode
         }
 
         safe_message = message
@@ -411,13 +412,28 @@ class GradioApp:
                         info="Maximum number of results to return",
                     )
 
-                    # 🌐 Live Search Option
+                    # 🌐 Enhanced Search Options
                     with gr.Group():
-                        gr.Markdown("**🌐 Live Search Options**")
+                        gr.Markdown("**🔍 Search Mode & Options**")
+
+                        # 🎯 Search Mode Selection
+                        search_mode = gr.Dropdown(
+                            label="🎯 Search Mode",
+                            choices=[
+                                ("🤖 Auto (Smart Routing)", "auto"),
+                                ("📚 Local Only (Stored Documents)", "local_only"),
+                                ("🌐 Live Only (Web Search)", "live_only"),
+                                ("🔄 Hybrid (Local + Live)", "hybrid"),
+                            ],
+                            value="auto",
+                            info="Choose how to search for information",
+                        )
+
+                        # 🌐 Live Search Toggle (for backward compatibility)
                         use_live_search = gr.Checkbox(
                             label="🔍 Enable Live Web Search",
                             value=False,
-                            info="Search the web for real-time information using Tavily API",
+                            info="Enable web search (will use hybrid mode by default)",
                         )
 
                         with gr.Row():
@@ -441,10 +457,37 @@ class GradioApp:
                             fn=lambda enabled: (
                                 gr.update(visible=enabled),
                                 gr.update(visible=enabled),
+                                gr.update(value="hybrid" if enabled else "auto"),
                             ),
                             inputs=[use_live_search],
-                            outputs=[search_depth, time_range],
+                            outputs=[search_depth, time_range, search_mode],
                         )
+
+                        # 📝 Search Mode Descriptions
+                        with gr.Accordion("ℹ️ Search Mode Guide", open=False):
+                            gr.Markdown(
+                                """
+                            **🤖 Auto Mode**: Intelligently chooses the best search method based on your query
+                            - Time-sensitive queries → Live search
+                            - Conceptual questions → Local documents
+                            - Factual queries → Hybrid approach
+                            
+                            **📚 Local Only**: Search only in your uploaded documents
+                            - Fastest response time
+                            - Uses your knowledge base
+                            - No internet required
+                            
+                            **🌐 Live Only**: Search only the web for real-time information
+                            - Latest information
+                            - Current events and news
+                            - Requires Tavily API key
+                            
+                            **🔄 Hybrid**: Combines both local documents and live web search
+                            - Best of both worlds
+                            - Comprehensive results
+                            - Balanced approach (recommended when live search is enabled)
+                            """
+                            )
 
                 with gr.Row():
                     query_btn = gr.Button("🚀 Get Answer", variant="primary", size="lg")
@@ -480,6 +523,7 @@ class GradioApp:
                 use_live_search,
                 search_depth,
                 time_range,
+                search_mode,
             ],
             outputs=[
                 response_output,
@@ -508,6 +552,7 @@ class GradioApp:
             "use_live_search": use_live_search,
             "search_depth": search_depth,
             "time_range": time_range,
+            "search_mode": search_mode,
         }
 
     def _create_knowledge_base_tab(self):
@@ -2006,6 +2051,7 @@ class GradioApp:
         use_live_search: bool = False,
         search_depth: str = "basic",
         time_range: str = "month",
+        search_mode: str = "auto",
     ) -> Tuple[str, str, Dict[str, Any], str, str]:
         """
         Process a user query with enhanced response formatting and live search options.
@@ -2031,22 +2077,41 @@ class GradioApp:
             )
 
         try:
-            # ✅ Safe Unicode logging for Windows compatibility
-            search_type = "🌐 Live + Local" if use_live_search else "📚 Local Only"
+            # ✅ Enhanced search type detection
+            search_type_map = {
+                "auto": "🤖 Auto",
+                "local_only": "📚 Local Only",
+                "live_only": "🌐 Live Only",
+                "hybrid": "🔄 Hybrid",
+            }
+            search_type = search_type_map.get(search_mode, "🤖 Auto")
+
+            # 🔄 Backward compatibility: if use_live_search is True but mode is auto, use hybrid
+            if use_live_search and search_mode == "auto":
+                search_mode = "hybrid"
+                search_type = "🔄 Hybrid"
+
             self._log_safe(
                 f" Processing query ({search_type}): {query[:100]}... "
-                f"(sources: {include_sources}, max_results: {max_results})"
+                f"(mode: {search_mode}, sources: {include_sources}, max_results: {max_results})"
             )
 
-            # 🚀 Check if we have live search capability
-            if use_live_search:
-                # Use live search via MCP Tavily integration
-                result = self._process_live_query(
-                    query, max_results, search_depth, time_range
+            # 🚀 Route query based on search mode
+            if search_mode in ["live_only", "hybrid"] or use_live_search:
+                # Use enhanced RAG system with search mode
+                result = self.rag_system.query(
+                    query,
+                    max_results=max_results,
+                    use_live_search=(
+                        search_mode in ["live_only", "hybrid"] or use_live_search
+                    ),
+                    search_mode=search_mode,
                 )
             else:
                 # Use traditional local RAG system
-                result = self.rag_system.query(query, max_results=max_results)
+                result = self.rag_system.query(
+                    query, max_results=max_results, search_mode=search_mode
+                )
 
             self.query_count += 1
 
@@ -2631,7 +2696,7 @@ class GradioApp:
                         else:
                             model_info["api_status"] = "⚠️ Connected but Limited"
                     except Exception as e:
-                        model_info["api_status"] = f"❌ Connection Error: {str(e)[:50]}"
+                        model_info["api_status"] = f" Connection Error: {str(e)[:50]}"
 
             return model_info
 
@@ -2639,10 +2704,10 @@ class GradioApp:
             self._log_safe(f"Error getting embedding model info: {e}", "error")
             return {
                 "model_name": "Error",
-                "status": "❌ Error",
+                "status": " Error",
                 "dimension": "Unknown",
                 "provider": "Unknown",
-                "api_status": f"❌ Error: {str(e)[:50]}",
+                "api_status": f" Error: {str(e)[:50]}",
                 "error": str(e),
             }
 

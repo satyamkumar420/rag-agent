@@ -518,15 +518,20 @@ class RAGSystem:
             }
 
     def query(
-        self, question: str, max_results: int = 5, use_live_search: bool = False
+        self,
+        question: str,
+        max_results: int = 5,
+        use_live_search: bool = False,
+        search_mode: str = "auto",
     ) -> dict:
         """
-        Process a query and generate a response with configurable result limits and live search.
+        Process a query and generate a response with enhanced search control.
 
         Args:
             question: User question
             max_results: Maximum number of results to retrieve
-            use_live_search: Whether to use live web search
+            use_live_search: Whether to enable live web search (uses hybrid approach)
+            search_mode: Search mode - "auto", "local_only", "live_only", "hybrid"
 
         Returns:
             Dictionary with response and metadata
@@ -550,8 +555,10 @@ class RAGSystem:
                 }
 
             # Use Query Router for intelligent routing if available
-            if hasattr(self, "query_router") and use_live_search:
-                self.logger.info("Using Query Router for intelligent search routing")
+            if hasattr(self, "query_router") and (
+                use_live_search or search_mode != "auto"
+            ):
+                self.logger.info(f"🧠 Using Query Router with mode: {search_mode}")
 
                 search_options = {"search_depth": "basic", "time_range": "month"}
 
@@ -560,6 +567,7 @@ class RAGSystem:
                     use_live_search=use_live_search,
                     max_results=max_results,
                     search_options=search_options,
+                    search_mode=search_mode,
                 )
 
                 # Convert router result to standard format
