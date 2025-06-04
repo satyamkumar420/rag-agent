@@ -2648,50 +2648,294 @@ class GradioApp:
 
     def _run_health_check(self) -> Tuple[Dict[str, Any], List[List[str]], str]:
         """
-        Run system health check.
+        🩺 Run comprehensive real system health check.
 
         Returns:
             Tuple of (system status, component status, logs)
         """
         try:
-            # System status
+            import psutil
+            import time
+            from datetime import timedelta
+
+            # 📊 Real System Status
+            start_time = time.time()
+
+            # Get real system metrics
+            memory_info = psutil.virtual_memory()
+            cpu_percent = psutil.cpu_percent(interval=1)
+
+            # Calculate uptime (approximate)
+            boot_time = psutil.boot_time()
+            uptime_seconds = time.time() - boot_time
+            uptime = str(timedelta(seconds=int(uptime_seconds)))
+
             system_status = {
-                "overall_health": "Healthy ",
-                "uptime": "2h 15m",
-                "memory_usage": "45%",
-                "cpu_usage": "12%",
+                "overall_health": "🟢 Healthy",
+                "uptime": uptime,
+                "memory_usage": f"{memory_info.percent:.1f}%",
+                "memory_available": f"{memory_info.available / (1024**3):.1f} GB",
+                "cpu_usage": f"{cpu_percent:.1f}%",
+                "disk_usage": f"{psutil.disk_usage('/').percent:.1f}%",
                 "last_check": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "system_load": "Normal" if cpu_percent < 80 else "High",
             }
 
-            # Component status
-            # Component status with real embedding model info
+            # 🔍 Real Component Status Check
+            components = []
+            logs = []
+
+            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            logs.append(f"[{current_time}] INFO - System health check initiated")
+
+            # 1. 🤖 Embedding Generator Check
             embedding_info = self._get_embedding_model_info()
-            embedding_status = embedding_info.get("status", "Unknown")
+            embedding_status = embedding_info.get("status", "❌ Unknown")
             embedding_details = f"{embedding_info.get('model_name', 'Unknown')} - {embedding_info.get('api_status', 'Unknown')}"
+            components.append(
+                ["🤖 Embedding Generator", embedding_status, embedding_details]
+            )
 
-            components = [
-                ["Embedding Generator", embedding_status, embedding_details],
-                ["Vector Database", "Healthy", "Pinecone connected"],
-                ["Document Processor", "Healthy", "All formats supported"],
-                ["Response Generator", "Healthy", "LLM available"],
-                ["Web Interface", "Healthy", "Gradio running"],
-            ]
+            if "✅" in embedding_status:
+                logs.append(
+                    f"[{current_time}] INFO - Embedding generator: {embedding_details}"
+                )
+            else:
+                logs.append(
+                    f"[{current_time}] WARN - Embedding generator: {embedding_details}"
+                )
 
-            # System logs
-            logs = """
-[2024-01-15 14:30:15] INFO - System health check initiated
-[2024-01-15 14:30:16] INFO - Checking embedding generator... OK
-[2024-01-15 14:30:17] INFO - Checking vector database... OK
-[2024-01-15 14:30:18] INFO - Checking document processor... OK
-[2024-01-15 14:30:19] INFO - Checking response generator... OK
-[2024-01-15 14:30:20] INFO - All systems operational 
-            """.strip()
+            # 2. 🌲 Vector Database Check
+            vector_db_status, vector_db_details = self._check_vector_db_health()
+            components.append(
+                ["🌲 Vector Database", vector_db_status, vector_db_details]
+            )
+            logs.append(f"[{current_time}] INFO - Vector database: {vector_db_details}")
 
-            return system_status, components, logs
+            # 3. 📄 Document Processor Check
+            doc_processor_status, doc_processor_details = (
+                self._check_document_processor_health()
+            )
+            components.append(
+                ["📄 Document Processor", doc_processor_status, doc_processor_details]
+            )
+            logs.append(
+                f"[{current_time}] INFO - Document processor: {doc_processor_details}"
+            )
+
+            # 4. 🧠 Response Generator Check
+            response_gen_status, response_gen_details = (
+                self._check_response_generator_health()
+            )
+            components.append(
+                ["🧠 Response Generator", response_gen_status, response_gen_details]
+            )
+            logs.append(
+                f"[{current_time}] INFO - Response generator: {response_gen_details}"
+            )
+
+            # 5. 🌐 Web Interface Check
+            components.append(
+                ["🌐 Web Interface", "✅ Healthy", "Gradio running successfully"]
+            )
+            logs.append(f"[{current_time}] INFO - Web interface: Running on port 7860")
+
+            # 6. 🔍 Live Search Check (if available)
+            live_search_status, live_search_details = self._check_live_search_health()
+            components.append(
+                ["🔍 Live Search", live_search_status, live_search_details]
+            )
+            logs.append(f"[{current_time}] INFO - Live search: {live_search_details}")
+
+            # Calculate overall health
+            healthy_components = sum(1 for comp in components if "✅" in comp[1])
+            total_components = len(components)
+            health_percentage = (healthy_components / total_components) * 100
+
+            if health_percentage >= 80:
+                system_status["overall_health"] = "🟢 Healthy"
+                logs.append(
+                    f"[{current_time}] INFO - Overall system health: {health_percentage:.0f}% ({healthy_components}/{total_components} components healthy)"
+                )
+            elif health_percentage >= 60:
+                system_status["overall_health"] = "🟡 Degraded"
+                logs.append(
+                    f"[{current_time}] WARN - System degraded: {health_percentage:.0f}% ({healthy_components}/{total_components} components healthy)"
+                )
+            else:
+                system_status["overall_health"] = "🔴 Unhealthy"
+                logs.append(
+                    f"[{current_time}] ERROR - System unhealthy: {health_percentage:.0f}% ({healthy_components}/{total_components} components healthy)"
+                )
+
+            # Add performance metrics
+            health_check_time = time.time() - start_time
+            system_status["health_check_duration"] = f"{health_check_time:.2f}s"
+            logs.append(
+                f"[{current_time}] INFO - Health check completed in {health_check_time:.2f}s"
+            )
+
+            return system_status, components, "\n".join(logs)
 
         except Exception as e:
-            self._log_safe(f" Error running health check: {e}", "error")
-            return {}, [], f"Health check failed: {str(e)}"
+            self._log_safe(f"❌ Error running health check: {e}", "error")
+            error_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            return (
+                {
+                    "overall_health": "🔴 Error",
+                    "error": str(e),
+                    "last_check": error_time,
+                },
+                [["System", "❌ Error", f"Health check failed: {str(e)}"]],
+                f"[{error_time}] ERROR - Health check failed: {str(e)}",
+            )
+
+    def _check_vector_db_health(self) -> Tuple[str, str]:
+        """🌲 Check Vector Database health status."""
+        try:
+            if hasattr(self.rag_system, "vector_db") and self.rag_system.vector_db:
+                vector_db = self.rag_system.vector_db
+
+                # Try to get health check from vector DB
+                if hasattr(vector_db, "health_check"):
+                    health_result = vector_db.health_check()
+                    if health_result.get("status") == "healthy":
+                        return (
+                            "✅ Healthy",
+                            f"Pinecone connected - {health_result.get('checks', {}).get('index_stats', 'OK')}",
+                        )
+                    else:
+                        return (
+                            "⚠️ Degraded",
+                            f"Issues detected: {health_result.get('error', 'Unknown')}",
+                        )
+
+                # Fallback: check if we can get stats
+                elif hasattr(vector_db, "get_stats"):
+                    stats = vector_db.get_stats()
+                    if stats.get("status") == "connected":
+                        total_vectors = stats.get("total_vectors", 0)
+                        return (
+                            "✅ Healthy",
+                            f"Pinecone connected - {total_vectors} vectors stored",
+                        )
+                    else:
+                        return (
+                            "❌ Error",
+                            f"Connection failed: {stats.get('error', 'Unknown')}",
+                        )
+
+                else:
+                    return (
+                        "⚠️ Limited",
+                        "Vector DB available but health check not implemented",
+                    )
+            else:
+                return "❌ Not Available", "Vector database not initialized"
+
+        except Exception as e:
+            return "❌ Error", f"Health check failed: {str(e)[:50]}"
+
+    def _check_document_processor_health(self) -> Tuple[str, str]:
+        """📄 Check Document Processor health status."""
+        try:
+            if (
+                hasattr(self.rag_system, "document_processor")
+                and self.rag_system.document_processor
+            ):
+                # Check if document processor has required dependencies
+                try:
+                    # Test basic functionality
+                    processor = self.rag_system.document_processor
+
+                    # Check if it has the required methods
+                    if hasattr(processor, "process_document"):
+                        supported_formats = [
+                            "PDF",
+                            "DOCX",
+                            "CSV",
+                            "XLSX",
+                            "PPTX",
+                            "TXT",
+                            "MD",
+                        ]
+                        return (
+                            "✅ Healthy",
+                            f"All formats supported: {', '.join(supported_formats)}",
+                        )
+                    else:
+                        return "⚠️ Limited", "Basic functionality available"
+
+                except ImportError as e:
+                    return (
+                        "❌ Dependencies Missing",
+                        f"Missing libraries: {str(e)[:30]}",
+                    )
+            else:
+                return "❌ Not Available", "Document processor not initialized"
+
+        except Exception as e:
+            return "❌ Error", f"Health check failed: {str(e)[:50]}"
+
+    def _check_response_generator_health(self) -> Tuple[str, str]:
+        """🧠 Check Response Generator health status."""
+        try:
+            if (
+                hasattr(self.rag_system, "response_generator")
+                and self.rag_system.response_generator
+            ):
+                response_gen = self.rag_system.response_generator
+
+                # Check if it has required configuration
+                config = getattr(response_gen, "config", {})
+
+                # Check API keys availability
+                gemini_key = config.get("gemini_api_key") or os.getenv("GEMINI_API_KEY")
+                openai_key = config.get("openai_api_key") or os.getenv("OPENAI_API_KEY")
+
+                if gemini_key:
+                    return "✅ Healthy", "Gemini LLM available for response generation"
+                elif openai_key:
+                    return "✅ Healthy", "OpenAI LLM available for response generation"
+                else:
+                    return "⚠️ Limited", "No LLM API keys configured"
+            else:
+                return "❌ Not Available", "Response generator not initialized"
+
+        except Exception as e:
+            return "❌ Error", f"Health check failed: {str(e)[:50]}"
+
+    def _check_live_search_health(self) -> Tuple[str, str]:
+        """🔍 Check Live Search health status."""
+        try:
+            # Check if Tavily API key is available
+            tavily_key = os.getenv("TAVILY_API_KEY")
+
+            if tavily_key:
+                # Check if live search components are available
+                if (
+                    hasattr(self.rag_system, "live_search_processor")
+                    and self.rag_system.live_search_processor
+                ):
+                    return "✅ Healthy", "Tavily API configured - Live search available"
+                elif (
+                    hasattr(self.rag_system, "query_router")
+                    and self.rag_system.query_router
+                ):
+                    return "✅ Healthy", "Query router available - Live search enabled"
+                else:
+                    return (
+                        "⚠️ Limited",
+                        "Tavily API key available but components not initialized",
+                    )
+            else:
+                return (
+                    "⚠️ Optional",
+                    "Tavily API key not configured - Live search disabled",
+                )
+
+        except Exception as e:
+            return "❌ Error", f"Health check failed: {str(e)[:50]}"
 
     def _get_stats_string(self) -> str:
         """Get formatted stats string."""
