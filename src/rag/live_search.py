@@ -61,7 +61,16 @@ class LiveSearchProcessor:
 
             self.tavily_client = TavilyClient(api_key=api_key)
 
-            self.logger.info("Tavily client initialized successfully")
+            # ✅ Auto-enable if client initializes successfully and no explicit config
+            if self.tavily_client and not self.config.get(
+                "enabled_explicitly_set", False
+            ):
+                self.enabled = True
+                self.logger.info(
+                    "Tavily client initialized successfully - Auto-enabled live search"
+                )
+            else:
+                self.logger.info("Tavily client initialized successfully")
 
         except ImportError:
             self.logger.error(
@@ -508,3 +517,7 @@ class LiveSearchProcessor:
         """Clear the search history."""
         self.search_history.clear()
         self.logger.info("Live search history cleared")
+
+
+# 🔄 Compatibility alias for existing imports
+LiveSearchManager = LiveSearchProcessor

@@ -188,6 +188,7 @@ rag:
   top_k: 10
   top_p: 0.9
 live_search:
+  enabled: true
   enable_caching: true
   include_raw_content: true
   max_results: 10

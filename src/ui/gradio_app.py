@@ -113,16 +113,22 @@ class GradioApp:
     def _log_safe(self, message: str, level: str = "info"):
         """🛡️ Unicode-safe logging that handles emojis on Windows."""
         try:
-            # ✅ Try normal logging first
-            getattr(self.logger, level)(message)
-        except UnicodeEncodeError:
-            # 🔄 Fallback: Replace emojis with text equivalents
+            # ✅ Pre-process message to be safe for Windows cp1252 encoding
             safe_message = self._make_message_safe(message)
             getattr(self.logger, level)(safe_message)
+        except UnicodeEncodeError:
+            # 🔄 Additional fallback: Remove all non-ASCII characters
+            ascii_message = message.encode("ascii", "ignore").decode("ascii")
+            getattr(self.logger, level)(f"[ENCODING_SAFE] {ascii_message}")
         except Exception as e:
-            # 🚨 Last resort: Plain text logging
-            plain_message = message.encode("ascii", "ignore").decode("ascii")
-            getattr(self.logger, level)(f"[ENCODING_SAFE] {plain_message}")
+            # 🚨 Last resort: Basic logging without special characters
+            basic_message = (
+                str(message).replace("🌐", "[LIVE]").replace("📚", "[LOCAL]")
+            )
+            try:
+                getattr(self.logger, level)(f"[SAFE] {basic_message}")
+            except:
+                print(f"[FALLBACK] {basic_message}")  # Direct print as last resort
 
     def _make_message_safe(self, message: str) -> str:
         """🔄 Convert emoji characters to safe text equivalents."""
@@ -145,6 +151,33 @@ class GradioApp:
             "📚": "[BOOKS]",
             "🩺": "[HEALTH]",
             "📈": "[ANALYTICS]",
+            "🌐": "[LIVE]",  # ✅ Added the problematic emoji
+            "🌍": "[WORLD]",
+            "🔧": "[TOOL]",
+            "🛡️": "[SHIELD]",
+            "🎨": "[DESIGN]",
+            "📝": "[NOTE]",
+            "🗑️": "[DELETE]",
+            "💾": "[SAVE]",
+            "📁": "[FOLDER]",
+            "🔔": "[BELL]",
+            "⚙️": "[SETTINGS]",
+            "🧪": "[TEST]",
+            "📤": "[EXPORT]",
+            "🔌": "[PORT]",
+            "🌲": "[TREE]",
+            "🔥": "[FIRE]",
+            "🔑": "[KEY]",
+            "🛠️": "[WRENCH]",
+            "💻": "[COMPUTER]",
+            "🏗️": "[BUILDING]",
+            "❓": "[QUESTION]",
+            "🪲": "[BUG]",
+            "🪃": "[BOOMERANG]",
+            "🛡️": "[SHIELD]",
+            "📘": "[BOOK]",
+            "🧹": "[BROOM]",
+            "🔬": "[MICROSCOPE]",
         }
 
         safe_message = message
@@ -2187,34 +2220,35 @@ class GradioApp:
         try:
             # 🌐 Use the live search module with Tavily Python SDK
             from src.rag.live_search import LiveSearchManager
-            
+
             self._log_safe(
                 f" Tavily API call: query='{query}', depth={search_depth}, range={time_range}"
             )
 
             # ✅ Initialize live search manager
             live_search = LiveSearchManager()
-            
+
             # 🚀 Perform the search using Tavily Python SDK
-            search_results = live_search.search(
+            search_results = live_search.search_web(
                 query=query,
                 max_results=max_results,
                 search_depth=search_depth,
                 time_range=time_range,
-                topic="general"
             )
 
             # 📊 Format results for UI consumption
             if search_results and search_results.get("success"):
                 formatted_results = []
                 for result in search_results.get("results", []):
-                    formatted_results.append({
-                        "title": result.get("title", ""),
-                        "content": result.get("content", ""),
-                        "url": result.get("url", ""),
-                        "score": result.get("score", 0.0),
-                        "published_date": result.get("published_date", ""),
-                    })
+                    formatted_results.append(
+                        {
+                            "title": result.get("title", ""),
+                            "content": result.get("content", ""),
+                            "url": result.get("url", ""),
+                            "score": result.get("score", 0.0),
+                            "published_date": result.get("published_date", ""),
+                        }
+                    )
 
                 return {
                     "results": formatted_results,
@@ -2232,7 +2266,7 @@ class GradioApp:
                 # 🚨 Handle search failure
                 error_msg = search_results.get("error", "Unknown search error")
                 self._log_safe(f" Tavily search failed: {error_msg}", "warning")
-                
+
                 return {
                     "results": [],
                     "total_results": 0,
