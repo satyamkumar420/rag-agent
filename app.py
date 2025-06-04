@@ -35,6 +35,8 @@ from embedding.embedding_generator import EmbeddingGenerator
 from storage.vector_db import VectorDB
 from rag.optimized_query_processor import OptimizedQueryProcessor
 from rag.response_generator import ResponseGenerator
+from rag.live_search import LiveSearchProcessor
+from rag.query_router import QueryRouter
 from ui.gradio_app import GradioApp
 
 
@@ -224,6 +226,17 @@ class RAGSystem:
             rag_config["openai_api_key"] = os.getenv("OPENAI_API_KEY")
 
             self.response_generator = ResponseGenerator(rag_config)
+
+            # Live Search components
+            self.logger.info("Initializing Live Search components...")
+            live_search_config = self.config_manager.get_section("live_search") or {}
+            self.live_search_processor = LiveSearchProcessor(live_search_config)
+
+            # Query Router for intelligent routing
+            router_config = self.config_manager.get_section("query_router") or {}
+            self.query_router = QueryRouter(
+                self.query_processor, self.live_search_processor, router_config
+            )
 
             self.logger.info("All components initialized successfully")
 
@@ -504,19 +517,24 @@ class RAGSystem:
                 "chunks_processed": 0,
             }
 
-    def query(self, question: str, max_results: int = 5) -> dict:
+    def query(
+        self, question: str, max_results: int = 5, use_live_search: bool = False
+    ) -> dict:
         """
-        Process a query and generate a response with configurable result limits.
+        Process a query and generate a response with configurable result limits and live search.
 
         Args:
             question: User question
             max_results: Maximum number of results to retrieve
+            use_live_search: Whether to use live web search
 
         Returns:
             Dictionary with response and metadata
         """
         try:
-            self.logger.info(f"Processing query: {question[:100]}...")
+            self.logger.info(
+                f"Processing query: {question[:100]}... (live_search: {use_live_search})"
+            )
 
             # Check if components are available
             if not all(
@@ -531,6 +549,73 @@ class RAGSystem:
                     "error": "Components not available",
                 }
 
+            # Use Query Router for intelligent routing if available
+            if hasattr(self, "query_router") and use_live_search:
+                self.logger.info("Using Query Router for intelligent search routing")
+
+                search_options = {"search_depth": "basic", "time_range": "month"}
+
+                router_result = self.query_router.route_query(
+                    question,
+                    use_live_search=use_live_search,
+                    max_results=max_results,
+                    search_options=search_options,
+                )
+
+                # Convert router result to standard format
+                if router_result.get("results"):
+                    # Format sources from router results
+                    sources = []
+                    for result in router_result["results"]:
+                        sources.append(
+                            {
+                                "title": result.get("title", ""),
+                                "source": result.get("source", ""),
+                                "content": result.get("content", ""),
+                                "score": result.get("score", 0.0),
+                                "type": result.get("type", "unknown"),
+                            }
+                        )
+
+                    # Generate response using response generator
+                    context_items = []
+                    for result in router_result["results"]:
+                        context_items.append(
+                            {
+                                "text": result.get("content", ""),
+                                "source": result.get("source", ""),
+                                "score": result.get("score", 0.0),
+                                "metadata": result.get("metadata", {}),
+                            }
+                        )
+
+                    response_result = self.response_generator.generate_response(
+                        question, context_items
+                    )
+
+                    return {
+                        "query": question,
+                        "response": response_result.get(
+                            "response", "No response generated"
+                        ),
+                        "sources": sources,
+                        "confidence": response_result.get("confidence", 0.0),
+                        "context_items": len(context_items),
+                        "processing_time": router_result.get("processing_time", 0),
+                        "generation_time": response_result.get("generation_time", 0),
+                        "model_used": response_result.get("model_used", "unknown"),
+                        "routing_decision": router_result.get(
+                            "routing_decision", "unknown"
+                        ),
+                        "search_type": "routed_search",
+                    }
+                else:
+                    # Fallback to local search if router fails
+                    self.logger.warning(
+                        "Router returned no results, falling back to local search"
+                    )
+
+            # Traditional local search path
             # Step 1: Process query and retrieve context with max_results
             # Update query processor config temporarily
             original_top_k = self.query_processor.top_k
@@ -565,10 +650,11 @@ class RAGSystem:
                 "processing_time": query_result.get("processing_time", 0),
                 "generation_time": response_result.get("generation_time", 0),
                 "model_used": response_result.get("model_used", "unknown"),
+                "search_type": "local_search",
             }
 
         except Exception as e:
-            self.logger.error(f" Error processing query: {str(e)}")
+            self.logger.error(f"Error processing query: {str(e)}")
             error_info = self.error_handler.handle_error(e, {"query": question})
             return {
                 "query": question,
@@ -727,20 +813,45 @@ def main():
             ui_config = {}
 
         # Launch the Gradio interface
+        base_port = ui_config.get("port", 7860)
         launch_config = {
             "server_name": ui_config.get("server_name", "0.0.0.0"),
-            "server_port": ui_config.get("port", 7860),
+            "server_port": base_port,
             "share": ui_config.get("share", False),
             "show_error": True,
             "quiet": False,
         }
 
-        print(
-            f"Launching interface on {launch_config['server_name']}:{launch_config['server_port']}"
-        )
-        print("=" * 50)
+        # Try different ports if the default is in use
+        for port_offset in range(10):  # Try ports 7860-7869
+            try:
+                current_port = base_port + port_offset
+                launch_config["server_port"] = current_port
 
-        gradio_app.launch(**launch_config)
+                print(
+                    f"Launching interface on {launch_config['server_name']}:{current_port}"
+                )
+                print("=" * 50)
+
+                gradio_app.launch(**launch_config)
+                break  # If successful, break out of the loop
+
+            except Exception as e:
+                if (
+                    "bind" in str(e).lower()
+                    or "address already in use" in str(e).lower()
+                ):
+                    print(f"Port {current_port} is in use, trying next port...")
+                    continue
+                else:
+                    # If it's a different error, re-raise it
+                    raise e
+        else:
+            # If we've tried all ports without success
+            print(
+                "Could not find an available port. Please close other applications using ports 7860-7869."
+            )
+            raise Exception("No available ports found")
 
     except KeyboardInterrupt:
         print("\n👋 Shutting down gracefully...")

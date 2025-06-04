@@ -37,6 +37,9 @@ langchain-openai
 langchain-community
 openai
 
+# Live Search Integration
+tavily-python
+
 # Vector Operations and ML
 numpy
 scikit-learn

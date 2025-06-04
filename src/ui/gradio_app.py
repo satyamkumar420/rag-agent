@@ -47,6 +47,12 @@ class GradioApp:
         self.config = config or {}
         self.logger = self._setup_unicode_logger()
 
+        # 🔧 Initialize settings manager
+        from utils.settings_manager import SettingsManager
+
+        config_manager = getattr(rag_system, "config_manager", None)
+        self.settings_manager = SettingsManager(config_manager)
+
         # UI Configuration
         self.title = self.config.get("title", "AI Embedded Knowledge Agent")
         self.description = self.config.get(
@@ -204,6 +210,10 @@ class GradioApp:
                 with gr.TabItem("🩺 System Health", id="health_tab"):
                     health_components = self._create_health_tab()
 
+                # Settings Tab
+                with gr.TabItem("⚙️ Settings", id="settings_tab"):
+                    settings_components = self._create_settings_tab()
+
         self.interface = interface
 
     def _create_upload_tab(self):
@@ -353,22 +363,59 @@ class GradioApp:
                     placeholder="Ask a question about your uploaded documents...",
                 )
 
-                with gr.Accordion("⚙Query Options", open=False):
+                with gr.Accordion("⚙️ Query Options", open=False):
                     include_sources = gr.Checkbox(
-                        label="Include Sources",
+                        label="📚 Include Sources",
                         value=True,
+                        info="Show source documents and references",
                     )
                     max_results = gr.Slider(
-                        label="Max Results",
+                        label="📊 Max Results",
                         minimum=1,
                         maximum=10,
                         value=5,
                         step=1,
+                        info="Maximum number of results to return",
                     )
 
+                    # 🌐 Live Search Option
+                    with gr.Group():
+                        gr.Markdown("**🌐 Live Search Options**")
+                        use_live_search = gr.Checkbox(
+                            label="🔍 Enable Live Web Search",
+                            value=False,
+                            info="Search the web for real-time information using Tavily API",
+                        )
+
+                        with gr.Row():
+                            search_depth = gr.Dropdown(
+                                label="🕷️ Search Depth",
+                                choices=["basic", "advanced"],
+                                value="basic",
+                                info="Basic: faster, Advanced: more comprehensive",
+                                visible=False,
+                            )
+                            time_range = gr.Dropdown(
+                                label="⏰ Time Range",
+                                choices=["day", "week", "month", "year"],
+                                value="month",
+                                info="How recent should the web results be",
+                                visible=False,
+                            )
+
+                        # 💡 Show/hide advanced options based on live search toggle
+                        use_live_search.change(
+                            fn=lambda enabled: (
+                                gr.update(visible=enabled),
+                                gr.update(visible=enabled),
+                            ),
+                            inputs=[use_live_search],
+                            outputs=[search_depth, time_range],
+                        )
+
                 with gr.Row():
-                    query_btn = gr.Button("Get Answer", variant="primary", size="lg")
-                    clear_query_btn = gr.Button("Clear", variant="secondary")
+                    query_btn = gr.Button("🚀 Get Answer", variant="primary", size="lg")
+                    clear_query_btn = gr.Button("🗑️ Clear", variant="secondary")
 
             with gr.Column(scale=1):
                 gr.Markdown("### 💬 Answer")
@@ -394,7 +441,14 @@ class GradioApp:
         # Event handlers
         query_btn.click(
             fn=self._process_query,
-            inputs=[query_input, include_sources, max_results],
+            inputs=[
+                query_input,
+                include_sources,
+                max_results,
+                use_live_search,
+                search_depth,
+                time_range,
+            ],
             outputs=[
                 response_output,
                 confidence_display,
@@ -405,7 +459,7 @@ class GradioApp:
         )
 
         clear_query_btn.click(
-            fn=lambda: ("", "", {}, "Ready "),
+            fn=lambda: ("", "", {}, "Ready 🟢"),
             outputs=[
                 response_output,
                 confidence_display,
@@ -419,6 +473,9 @@ class GradioApp:
             "query_btn": query_btn,
             "response_output": response_output,
             "sources_output": sources_output,
+            "use_live_search": use_live_search,
+            "search_depth": search_depth,
+            "time_range": time_range,
         }
 
     def _create_knowledge_base_tab(self):
@@ -835,6 +892,533 @@ class GradioApp:
         except Exception as e:
             return [["Error loading history", "0", "0.0", "0.0s", str(e)]]
 
+    def _create_settings_tab(self):
+        """Create the comprehensive settings management tab."""
+        with gr.Column():
+            gr.Markdown("### ⚙️ Environment Variables Settings")
+            gr.Markdown(
+                "Configure API keys and system settings with secure storage options"
+            )
+
+            # 🔄 Refresh and action buttons
+            with gr.Row():
+                refresh_settings_btn = gr.Button("🔄 Refresh", variant="secondary")
+                load_env_btn = gr.Button("📁 Load from .env", variant="secondary")
+                clear_cache_btn = gr.Button("🗑️ Clear Cache", variant="secondary")
+                export_btn = gr.Button("📤 Export Settings", variant="secondary")
+
+            # 📊 Settings status display
+            settings_status = gr.Textbox(
+                label="🔔 Status",
+                value="Ready to configure settings",
+                interactive=False,
+                container=False,
+            )
+
+            # 🔧 Main settings interface
+            with gr.Tabs():
+                # API Keys Tab
+                with gr.TabItem("🔑 API Keys"):
+                    api_keys_components = self._create_api_keys_section()
+
+                # System Settings Tab
+                with gr.TabItem("🛠️ System Settings"):
+                    system_settings_components = self._create_system_settings_section()
+
+                # Storage Options Tab
+                with gr.TabItem("💾 Storage & Export"):
+                    storage_components = self._create_storage_section()
+
+            # 📋 Settings overview
+            with gr.Accordion("📋 Current Settings Overview", open=False):
+                settings_overview = gr.JSON(
+                    label="Environment Variables Status", value={}
+                )
+
+            # Event handlers for main buttons
+            refresh_settings_btn.click(
+                fn=self._refresh_all_settings,
+                outputs=[
+                    settings_status,
+                    settings_overview,
+                    *api_keys_components.values(),
+                    *system_settings_components.values(),
+                ],
+            )
+
+            load_env_btn.click(
+                fn=self._load_from_env_file,
+                outputs=[settings_status, settings_overview],
+            )
+
+            clear_cache_btn.click(
+                fn=self._clear_settings_cache,
+                outputs=[settings_status, settings_overview],
+            )
+
+            export_btn.click(fn=self._export_settings, outputs=[settings_status])
+
+        return {
+            "settings_status": settings_status,
+            "settings_overview": settings_overview,
+            **api_keys_components,
+            **system_settings_components,
+            **storage_components,
+        }
+
+    def _create_api_keys_section(self):
+        """Create the API keys configuration section."""
+        components = {}
+
+        with gr.Column():
+            gr.Markdown("#### 🔑 API Keys Configuration")
+            gr.Markdown(
+                "Configure your API keys for AI services. Keys are masked for security."
+            )
+
+            # Gemini API Key
+            with gr.Group():
+                gr.Markdown("**🤖 Google Gemini API** (Required)")
+                with gr.Row():
+                    gemini_key = gr.Textbox(
+                        label="GEMINI_API_KEY",
+                        placeholder="AIzaSy...",
+                        type="password",
+                        info="Required for embeddings and LLM functionality",
+                    )
+                    gemini_test_btn = gr.Button(
+                        "🧪 Test", variant="secondary", size="sm"
+                    )
+
+                gemini_status = gr.Textbox(
+                    label="Status",
+                    value="Not configured",
+                    interactive=False,
+                    container=False,
+                )
+
+                with gr.Row():
+                    gemini_cache_btn = gr.Button(
+                        "💾 Save to Cache", variant="primary", size="sm"
+                    )
+                    gemini_env_btn = gr.Button(
+                        "📁 Save to .env", variant="primary", size="sm"
+                    )
+
+                gr.Markdown(
+                    "💡 [Get your Gemini API key](https://aistudio.google.com/)"
+                )
+
+            # Pinecone API Key
+            with gr.Group():
+                gr.Markdown("**🌲 Pinecone API  (Required)**")
+                with gr.Row():
+                    pinecone_key = gr.Textbox(
+                        label="PINECONE_API_KEY",
+                        placeholder="pc-...",
+                        type="password",
+                        info="For vector database storage",
+                    )
+                    pinecone_test_btn = gr.Button(
+                        "🧪 Test", variant="secondary", size="sm"
+                    )
+
+                pinecone_status = gr.Textbox(
+                    label="Status",
+                    value="Not configured",
+                    interactive=False,
+                    container=False,
+                )
+
+                with gr.Row():
+                    pinecone_cache_btn = gr.Button(
+                        "💾 Save to Cache", variant="primary", size="sm"
+                    )
+                    pinecone_env_btn = gr.Button(
+                        "📁 Save to .env", variant="primary", size="sm"
+                    )
+
+                gr.Markdown("💡 [Get your Pinecone API key](https://www.pinecone.io/)")
+
+            # OpenAI API Key
+            with gr.Group():
+                gr.Markdown("**🔥 OpenAI API** (Optional)")
+                with gr.Row():
+                    openai_key = gr.Textbox(
+                        label="OPENAI_API_KEY",
+                        placeholder="sk-...",
+                        type="password",
+                        info="For alternative LLM functionality",
+                    )
+                    openai_test_btn = gr.Button(
+                        "🧪 Test", variant="secondary", size="sm"
+                    )
+
+                openai_status = gr.Textbox(
+                    label="Status",
+                    value="Not configured",
+                    interactive=False,
+                    container=False,
+                )
+
+                with gr.Row():
+                    openai_cache_btn = gr.Button(
+                        "💾 Save to Cache", variant="primary", size="sm"
+                    )
+                    openai_env_btn = gr.Button(
+                        "📁 Save to .env", variant="primary", size="sm"
+                    )
+
+                gr.Markdown(
+                    "💡 [Get your OpenAI API key](https://platform.openai.com/api-keys)"
+                )
+
+            # Tavily API Key
+            with gr.Group():
+                gr.Markdown("**🌐 Tavily API** (Optional - for Live Search)")
+                with gr.Row():
+                    tavily_key = gr.Textbox(
+                        label="TAVILY_API_KEY",
+                        placeholder="tvly-...",
+                        type="password",
+                        info="For real-time web search functionality",
+                    )
+                    tavily_test_btn = gr.Button(
+                        "🧪 Test", variant="secondary", size="sm"
+                    )
+
+                tavily_status = gr.Textbox(
+                    label="Status",
+                    value="Not configured",
+                    interactive=False,
+                    container=False,
+                )
+
+                with gr.Row():
+                    tavily_cache_btn = gr.Button(
+                        "💾 Save to Cache", variant="primary", size="sm"
+                    )
+                    tavily_env_btn = gr.Button(
+                        "📁 Save to .env", variant="primary", size="sm"
+                    )
+
+                gr.Markdown(
+                    "💡 [Get your Tavily API key](https://app.tavily.com/sign-in)"
+                )
+
+        # Store components for event handling
+        components.update(
+            {
+                "gemini_key": gemini_key,
+                "gemini_status": gemini_status,
+                "pinecone_key": pinecone_key,
+                "pinecone_status": pinecone_status,
+                "openai_key": openai_key,
+                "openai_status": openai_status,
+                "tavily_key": tavily_key,
+                "tavily_status": tavily_status,
+            }
+        )
+
+        # Event handlers for API keys
+        gemini_test_btn.click(
+            fn=lambda: self._test_api_connection("GEMINI_API_KEY"),
+            outputs=[gemini_status],
+        )
+
+        gemini_cache_btn.click(
+            fn=lambda key: self._save_setting("GEMINI_API_KEY", key, "cache"),
+            inputs=[gemini_key],
+            outputs=[gemini_status],
+        )
+
+        gemini_env_btn.click(
+            fn=lambda key: self._save_setting("GEMINI_API_KEY", key, "env_file"),
+            inputs=[gemini_key],
+            outputs=[gemini_status],
+        )
+
+        pinecone_test_btn.click(
+            fn=lambda: self._test_api_connection("PINECONE_API_KEY"),
+            outputs=[pinecone_status],
+        )
+
+        pinecone_cache_btn.click(
+            fn=lambda key: self._save_setting("PINECONE_API_KEY", key, "cache"),
+            inputs=[pinecone_key],
+            outputs=[pinecone_status],
+        )
+
+        pinecone_env_btn.click(
+            fn=lambda key: self._save_setting("PINECONE_API_KEY", key, "env_file"),
+            inputs=[pinecone_key],
+            outputs=[pinecone_status],
+        )
+
+        openai_test_btn.click(
+            fn=lambda: self._test_api_connection("OPENAI_API_KEY"),
+            outputs=[openai_status],
+        )
+
+        openai_cache_btn.click(
+            fn=lambda key: self._save_setting("OPENAI_API_KEY", key, "cache"),
+            inputs=[openai_key],
+            outputs=[openai_status],
+        )
+
+        openai_env_btn.click(
+            fn=lambda key: self._save_setting("OPENAI_API_KEY", key, "env_file"),
+            inputs=[openai_key],
+            outputs=[openai_status],
+        )
+
+        tavily_test_btn.click(
+            fn=lambda: self._test_api_connection("TAVILY_API_KEY"),
+            outputs=[tavily_status],
+        )
+
+        tavily_cache_btn.click(
+            fn=lambda key: self._save_setting("TAVILY_API_KEY", key, "cache"),
+            inputs=[tavily_key],
+            outputs=[tavily_status],
+        )
+
+        tavily_env_btn.click(
+            fn=lambda key: self._save_setting("TAVILY_API_KEY", key, "env_file"),
+            inputs=[tavily_key],
+            outputs=[tavily_status],
+        )
+
+        return components
+
+    def _create_system_settings_section(self):
+        """Create the system settings configuration section."""
+        components = {}
+
+        with gr.Column():
+            gr.Markdown("#### 🛠️ System Configuration")
+            gr.Markdown("Configure system-level settings and preferences")
+
+            # Pinecone Environment
+            with gr.Group():
+                gr.Markdown("**🌍 Pinecone Environment**")
+                pinecone_env = gr.Dropdown(
+                    label="PINECONE_ENVIRONMENT",
+                    choices=[
+                        "us-east-1",
+                        "us-west1-gcp",
+                        "eu-west1-gcp",
+                        "asia-southeast1-gcp",
+                    ],
+                    value="us-east-1",
+                    info="Pinecone server region",
+                )
+
+                with gr.Row():
+                    pinecone_env_cache_btn = gr.Button(
+                        "💾 Save to Cache", variant="primary", size="sm"
+                    )
+                    pinecone_env_file_btn = gr.Button(
+                        "📁 Save to .env", variant="primary", size="sm"
+                    )
+
+            # Pinecone Index Name
+            with gr.Group():
+                gr.Markdown("**📊 Pinecone Index Name**")
+                pinecone_index = gr.Textbox(
+                    label="PINECONE_INDEX_NAME",
+                    value="rag-ai-index",
+                    placeholder="rag-ai-index",
+                    info="Name of your Pinecone index",
+                )
+
+                with gr.Row():
+                    pinecone_index_cache_btn = gr.Button(
+                        "💾 Save to Cache", variant="primary", size="sm"
+                    )
+                    pinecone_index_file_btn = gr.Button(
+                        "📁 Save to .env", variant="primary", size="sm"
+                    )
+
+            # Gradio Share
+            with gr.Group():
+                gr.Markdown("**🌐 Gradio Public Sharing**")
+                gradio_share = gr.Dropdown(
+                    label="GRADIO_SHARE",
+                    choices=["false", "true"],
+                    value="false",
+                    info="Enable public sharing of the interface",
+                )
+
+                with gr.Row():
+                    gradio_share_cache_btn = gr.Button(
+                        "💾 Save to Cache", variant="primary", size="sm"
+                    )
+                    gradio_share_file_btn = gr.Button(
+                        "📁 Save to .env", variant="primary", size="sm"
+                    )
+
+            # Port Configuration
+            with gr.Group():
+                gr.Markdown("**🔌 Server Port**")
+                port_setting = gr.Number(
+                    label="PORT",
+                    value=7860,
+                    minimum=1000,
+                    maximum=65535,
+                    info="Server port number (requires restart)",
+                )
+
+                with gr.Row():
+                    port_cache_btn = gr.Button(
+                        "💾 Save to Cache", variant="primary", size="sm"
+                    )
+                    port_file_btn = gr.Button(
+                        "📁 Save to .env", variant="primary", size="sm"
+                    )
+
+            # System settings status
+            system_status = gr.Textbox(
+                label="System Settings Status",
+                value="Ready",
+                interactive=False,
+                container=False,
+            )
+
+        components.update(
+            {
+                "pinecone_env": pinecone_env,
+                "pinecone_index": pinecone_index,
+                "gradio_share": gradio_share,
+                "port_setting": port_setting,
+                "system_status": system_status,
+            }
+        )
+
+        # Event handlers for system settings
+        pinecone_env_cache_btn.click(
+            fn=lambda val: self._save_setting("PINECONE_ENVIRONMENT", val, "cache"),
+            inputs=[pinecone_env],
+            outputs=[system_status],
+        )
+
+        pinecone_env_file_btn.click(
+            fn=lambda val: self._save_setting("PINECONE_ENVIRONMENT", val, "env_file"),
+            inputs=[pinecone_env],
+            outputs=[system_status],
+        )
+
+        pinecone_index_cache_btn.click(
+            fn=lambda val: self._save_setting("PINECONE_INDEX_NAME", val, "cache"),
+            inputs=[pinecone_index],
+            outputs=[system_status],
+        )
+
+        pinecone_index_file_btn.click(
+            fn=lambda val: self._save_setting("PINECONE_INDEX_NAME", val, "env_file"),
+            inputs=[pinecone_index],
+            outputs=[system_status],
+        )
+
+        gradio_share_cache_btn.click(
+            fn=lambda val: self._save_setting("GRADIO_SHARE", val, "cache"),
+            inputs=[gradio_share],
+            outputs=[system_status],
+        )
+
+        gradio_share_file_btn.click(
+            fn=lambda val: self._save_setting("GRADIO_SHARE", val, "env_file"),
+            inputs=[gradio_share],
+            outputs=[system_status],
+        )
+
+        port_cache_btn.click(
+            fn=lambda val: self._save_setting("PORT", str(int(val)), "cache"),
+            inputs=[port_setting],
+            outputs=[system_status],
+        )
+
+        port_file_btn.click(
+            fn=lambda val: self._save_setting("PORT", str(int(val)), "env_file"),
+            inputs=[port_setting],
+            outputs=[system_status],
+        )
+
+        return components
+
+    def _create_storage_section(self):
+        """Create the storage and export section."""
+        components = {}
+
+        with gr.Column():
+            gr.Markdown("#### 💾 Storage & Export Options")
+            gr.Markdown("Manage how your settings are stored and exported")
+
+            with gr.Row():
+                with gr.Column():
+                    gr.Markdown("**💾 Cache Storage**")
+                    gr.Markdown("• Temporary storage in memory")
+                    gr.Markdown("• Lost when application restarts")
+                    gr.Markdown("• Good for testing configurations")
+
+                with gr.Column():
+                    gr.Markdown("**📁 .env File Storage**")
+                    gr.Markdown("• Persistent storage in .env file")
+                    gr.Markdown("• Survives application restarts")
+                    gr.Markdown("• Recommended for production use")
+
+            # Export options
+            with gr.Group():
+                gr.Markdown("**📤 Export Settings**")
+
+                with gr.Row():
+                    include_sensitive = gr.Checkbox(
+                        label="Include API Keys (masked)",
+                        value=False,
+                        info="Include API keys in export (they will be masked)",
+                    )
+                    export_format = gr.Dropdown(
+                        label="Export Format",
+                        choices=["JSON", "ENV"],
+                        value="JSON",
+                        info="Choose export format",
+                    )
+
+                export_output = gr.Textbox(
+                    label="Export Output",
+                    lines=10,
+                    interactive=False,
+                    placeholder="Exported settings will appear here...",
+                )
+
+                export_settings_btn = gr.Button("📤 Generate Export", variant="primary")
+
+            # Storage status
+            storage_status = gr.Textbox(
+                label="Storage Status",
+                value="Ready",
+                interactive=False,
+                container=False,
+            )
+
+        components.update(
+            {
+                "include_sensitive": include_sensitive,
+                "export_format": export_format,
+                "export_output": export_output,
+                "storage_status": storage_status,
+            }
+        )
+
+        # Export event handler
+        export_settings_btn.click(
+            fn=self._generate_export,
+            inputs=[include_sensitive, export_format],
+            outputs=[export_output, storage_status],
+        )
+
+        return components
+
     def _create_health_tab(self):
         """Create the system health monitoring tab."""
         with gr.Column():
@@ -898,6 +1482,275 @@ class GradioApp:
             margin: 8px;
         }
         """
+
+    # 🔧 Settings Management Methods
+
+    def _refresh_all_settings(self):
+        """Refresh all settings and return updated values."""
+        try:
+            settings = self.settings_manager.get_current_settings()
+
+            # Create overview for display
+            overview = {}
+            for var_name, config in settings.items():
+                overview[var_name] = {
+                    "value": config["value"] if config["is_set"] else "Not set",
+                    "source": config["source"],
+                    "status": (
+                        "✅ Valid"
+                        if config["is_valid"]
+                        else "❌ Invalid" if config["is_set"] else "⚠️ Not set"
+                    ),
+                    "required": config["is_required"],
+                }
+
+            # Return status and all component updates
+            status_msg = "🔄 Settings refreshed successfully"
+
+            # Get current values for form fields
+            gemini_val = settings.get("GEMINI_API_KEY", {}).get("raw_value", "")
+            pinecone_val = settings.get("PINECONE_API_KEY", {}).get("raw_value", "")
+            openai_val = settings.get("OPENAI_API_KEY", {}).get("raw_value", "")
+            tavily_val = settings.get("TAVILY_API_KEY", {}).get("raw_value", "")
+
+            pinecone_env_val = settings.get("PINECONE_ENVIRONMENT", {}).get(
+                "raw_value", "us-east-1"
+            )
+            pinecone_index_val = settings.get("PINECONE_INDEX_NAME", {}).get(
+                "raw_value", "rag-ai-index"
+            )
+            gradio_share_val = settings.get("GRADIO_SHARE", {}).get(
+                "raw_value", "false"
+            )
+            port_val = int(settings.get("PORT", {}).get("raw_value", "7860"))
+
+            return (
+                status_msg,
+                overview,
+                gemini_val,
+                settings.get("GEMINI_API_KEY", {}).get("value", "Not configured"),
+                pinecone_val,
+                settings.get("PINECONE_API_KEY", {}).get("value", "Not configured"),
+                openai_val,
+                settings.get("OPENAI_API_KEY", {}).get("value", "Not configured"),
+                tavily_val,
+                settings.get("TAVILY_API_KEY", {}).get("value", "Not configured"),
+                pinecone_env_val,
+                pinecone_index_val,
+                gradio_share_val,
+                port_val,
+                "✅ Settings loaded",
+            )
+
+        except Exception as e:
+            self._log_safe(f" Error refreshing settings: {e}", "error")
+            return (
+                f" Error refreshing settings: {str(e)}",
+                {},
+                "",
+                "Error loading",
+                "",
+                "Error loading",
+                "",
+                "Error loading",
+                "",
+                "Error loading",
+                "us-east-1",
+                "rag-ai-index",
+                "false",
+                7860,
+                "❌ Error loading",
+            )
+
+    def _save_setting(self, var_name: str, value: str, storage_type: str) -> str:
+        """Save a setting with the specified storage type."""
+        try:
+            result = self.settings_manager.update_setting(var_name, value, storage_type)
+
+            if result["success"]:
+                self._log_safe(f" Saved {var_name} to {storage_type}")
+                return result["status"]
+            else:
+                self._log_safe(
+                    f" Failed to save {var_name}: {result.get('error', 'Unknown error')}",
+                    "error",
+                )
+                return result["status"]
+
+        except Exception as e:
+            self._log_safe(f" Error saving {var_name}: {e}", "error")
+            return f"❌ Error: {str(e)}"
+
+    def _test_api_connection(self, var_name: str) -> str:
+        """Test API connection for the specified variable."""
+        try:
+            result = self.settings_manager.test_connection(var_name)
+
+            if result["success"]:
+                self._log_safe(f"✅ {var_name} connection test successful")
+            else:
+                self._log_safe(
+                    f" {var_name} connection test failed: {result.get('error', 'Unknown error')}",
+                    "warning",
+                )
+
+            return result["status"]
+
+        except Exception as e:
+            self._log_safe(f" Error testing {var_name}: {e}", "error")
+            return f" Test error: {str(e)}"
+
+    def _load_from_env_file(self) -> Tuple[str, Dict[str, Any]]:
+        """Load settings from .env file."""
+        try:
+            result = self.settings_manager.load_from_env_file()
+
+            if result["success"]:
+                self._log_safe(
+                    f" Loaded {result['loaded_count']} variables from .env file"
+                )
+
+                # Get updated overview
+                settings = self.settings_manager.get_current_settings()
+                overview = {}
+                for var_name, config in settings.items():
+                    overview[var_name] = {
+                        "value": config["value"] if config["is_set"] else "Not set",
+                        "source": config["source"],
+                        "status": (
+                            "✅ Valid"
+                            if config["is_valid"]
+                            else "❌ Invalid" if config["is_set"] else "⚠️ Not set"
+                        ),
+                        "required": config["is_required"],
+                    }
+
+                return result["status"], overview
+            else:
+                self._log_safe(
+                    f" Failed to load from .env: {result.get('error', 'Unknown error')}",
+                    "error",
+                )
+                return result["status"], {}
+
+        except Exception as e:
+            self._log_safe(f" Error loading from .env file: {e}", "error")
+            return f" Error: {str(e)}", {}
+
+    def _clear_settings_cache(self) -> Tuple[str, Dict[str, Any]]:
+        """Clear settings cache."""
+        try:
+            result = self.settings_manager.clear_cache()
+
+            if result["success"]:
+                self._log_safe(f" Cleared {result['cleared_count']} cached variables")
+
+                # Get updated overview
+                settings = self.settings_manager.get_current_settings()
+                overview = {}
+                for var_name, config in settings.items():
+                    overview[var_name] = {
+                        "value": config["value"] if config["is_set"] else "Not set",
+                        "source": config["source"],
+                        "status": (
+                            "✅ Valid"
+                            if config["is_valid"]
+                            else "❌ Invalid" if config["is_set"] else "⚠️ Not set"
+                        ),
+                        "required": config["is_required"],
+                    }
+
+                return result["status"], overview
+            else:
+                self._log_safe(
+                    f" Failed to clear cache: {result.get('error', 'Unknown error')}",
+                    "error",
+                )
+                return result["status"], {}
+
+        except Exception as e:
+            self._log_safe(f" Error clearing cache: {e}", "error")
+            return f" Error: {str(e)}", {}
+
+    def _export_settings(self) -> str:
+        """Export settings (basic version for main button)."""
+        try:
+            result = self.settings_manager.export_settings(include_sensitive=False)
+
+            if result["success"]:
+                self._log_safe(" Settings exported successfully")
+                return " Settings exported (check Storage & Export tab for details)"
+            else:
+                self._log_safe(
+                    f" Failed to export settings: {result.get('error', 'Unknown error')}",
+                    "error",
+                )
+                return f" Export failed: {result.get('error', 'Unknown error')}"
+
+        except Exception as e:
+            self._log_safe(f" Error exporting settings: {e}", "error")
+            return f" Error: {str(e)}"
+
+    def _generate_export(
+        self, include_sensitive: bool, export_format: str
+    ) -> Tuple[str, str]:
+        """Generate detailed export output."""
+        try:
+            result = self.settings_manager.export_settings(
+                include_sensitive=include_sensitive
+            )
+
+            if not result["success"]:
+                return (
+                    f" Export failed: {result.get('error', 'Unknown error')}",
+                    " Export failed",
+                )
+
+            settings_data = result["settings"]
+
+            if export_format == "JSON":
+                import json
+
+                export_content = json.dumps(
+                    {
+                        "export_info": {
+                            "timestamp": result["export_timestamp"],
+                            "include_sensitive": include_sensitive,
+                            "format": "JSON",
+                        },
+                        "settings": settings_data,
+                    },
+                    indent=2,
+                )
+
+            elif export_format == "ENV":
+                export_lines = [
+                    "# Environment Variables Export",
+                    f"# Generated on {result['export_timestamp']}",
+                    f"# Include sensitive: {include_sensitive}",
+                    "",
+                ]
+
+                for var_name, config in settings_data.items():
+                    if config["is_set"]:
+                        value = config["value"]
+                        export_lines.append(f"# {config['description']}")
+                        export_lines.append(f"{var_name}={value}")
+                        export_lines.append("")
+
+                export_content = "\n".join(export_lines)
+
+            else:
+                return " Invalid export format", " Invalid format"
+
+            self._log_safe(
+                f" Generated {export_format} export with {len(settings_data)} variables"
+            )
+            return export_content, f" {export_format} export generated successfully"
+
+        except Exception as e:
+            self._log_safe(f" Error generating export: {e}", "error")
+            return f" Error: {str(e)}", " Export generation failed"
 
     def _process_documents(self, files) -> Tuple[str, str, str]:
         """
@@ -1060,7 +1913,7 @@ class GradioApp:
             status = (
                 f"Processed {successful}/{len(urls)} URLs "
                 if successful > 0
-                else "Processing failed ❌"
+                else "Processing failed "
             )
 
             final_progress = (
@@ -1069,25 +1922,34 @@ class GradioApp:
             return output, status, self._get_stats_string(), final_progress
 
         except Exception as e:
-            self._log_safe(f"❌ Error processing URLs: {str(e)}", "error")
-            error_progress = f"❌ Error occurred during processing"
+            self._log_safe(f" Error processing URLs: {str(e)}", "error")
+            error_progress = f" Error occurred during processing"
             return (
-                f"❌ Error: {str(e)}",
-                "Error ❌",
+                f" Error: {str(e)}",
+                "Error ",
                 self._get_stats_string(),
                 error_progress,
             )
 
     def _process_query(
-        self, query: str, include_sources: bool = True, max_results: int = 5
+        self,
+        query: str,
+        include_sources: bool = True,
+        max_results: int = 5,
+        use_live_search: bool = False,
+        search_depth: str = "basic",
+        time_range: str = "month",
     ) -> Tuple[str, str, Dict[str, Any], str, str]:
         """
-        Process a user query with enhanced response formatting and query options.
+        Process a user query with enhanced response formatting and live search options.
 
         Args:
             query: User query string
             include_sources: Whether to include source information
             max_results: Maximum number of results to return
+            use_live_search: Whether to use live web search
+            search_depth: Search depth for live search
+            time_range: Time range for live search
 
         Returns:
             Tuple of (response, confidence, sources, status, stats)
@@ -1097,18 +1959,27 @@ class GradioApp:
                 "Please enter a question.",
                 "",
                 {},
-                "Ready ",
+                "Ready 🟢",
                 self._get_stats_string(),
             )
 
         try:
             # ✅ Safe Unicode logging for Windows compatibility
+            search_type = "🌐 Live + Local" if use_live_search else "📚 Local Only"
             self._log_safe(
-                f" Processing query: {query[:100]}... (sources: {include_sources}, max_results: {max_results})"
+                f" Processing query ({search_type}): {query[:100]}... "
+                f"(sources: {include_sources}, max_results: {max_results})"
             )
 
-            # Get response from RAG system with query options
-            result = self.rag_system.query(query, max_results=max_results)
+            # 🚀 Check if we have live search capability
+            if use_live_search:
+                # Use live search via MCP Tavily integration
+                result = self._process_live_query(
+                    query, max_results, search_depth, time_range
+                )
+            else:
+                # Use traditional local RAG system
+                result = self.rag_system.query(query, max_results=max_results)
 
             self.query_count += 1
 
@@ -1116,7 +1987,7 @@ class GradioApp:
             confidence = result.get("confidence", 0.0)
             sources = result.get("sources", [])
 
-            # Format confidence display
+            # 🎯 Format confidence display with search type indicator
             confidence_text = f"🎯 Confidence: {confidence:.1%}"
             if confidence >= 0.8:
                 confidence_text += " 🟢 High"
@@ -1125,14 +1996,13 @@ class GradioApp:
             else:
                 confidence_text += " 🔴 Low"
 
-            # Add processing details
+            # Add processing details with search type
             context_items = result.get("context_items", 0)
             processing_time = result.get("processing_time", 0)
-            confidence_text += (
-                f" | ⚡ {processing_time:.2f}s | 📄 {context_items} chunks"
-            )
+            search_indicator = "🌐" if use_live_search else "📚"
+            confidence_text += f" | {search_indicator} {search_type} | ⚡ {processing_time:.2f}s | 📄 {context_items} items"
 
-            # Format sources for display based on user preference
+            # 📊 Format sources for display based on user preference
             sources_display = {}
             if include_sources and sources:
                 # Limit sources based on max_results
@@ -1143,22 +2013,45 @@ class GradioApp:
                     "showing": len(limited_sources),
                     "max_requested": max_results,
                     "sources": limited_sources,
+                    "search_type": search_type,
                     "query_options": {
                         "include_sources": include_sources,
                         "max_results": max_results,
+                        "use_live_search": use_live_search,
+                        "search_depth": search_depth if use_live_search else None,
+                        "time_range": time_range if use_live_search else None,
                     },
                 }
+
+                # 🌐 Add live search specific metadata
+                if use_live_search:
+                    sources_display.update(
+                        {
+                            "live_search_params": {
+                                "search_depth": search_depth,
+                                "time_range": time_range,
+                                "routing_decision": result.get(
+                                    "routing_decision", "live_search"
+                                ),
+                            }
+                        }
+                    )
+
             elif not include_sources:
                 sources_display = {
                     "message": "🔒 Sources hidden by user preference",
                     "total_sources": len(sources),
+                    "search_type": search_type,
                     "query_options": {
                         "include_sources": include_sources,
                         "max_results": max_results,
+                        "use_live_search": use_live_search,
                     },
                 }
 
-            status = f"✅ Query processed (confidence: {confidence:.1%}, {len(sources)} sources) "
+            # 📈 Enhanced status with search type
+            status_icon = "🌐" if use_live_search else "📚"
+            status = f"✅ {status_icon} Query processed (confidence: {confidence:.1%}, {len(sources)} sources)"
 
             return (
                 response,
@@ -1169,14 +2062,198 @@ class GradioApp:
             )
 
         except Exception as e:
-            self._log_safe(f"❌ Error processing query: {str(e)}", "error")
+            self._log_safe(f" Error processing query: {str(e)}", "error")
             return (
-                f"❌ Error: {str(e)}",
+                f" Error: {str(e)}",
                 "Error",
                 {},
-                "Error ❌",
+                "Error ",
                 self._get_stats_string(),
             )
+
+    def _process_live_query(
+        self, query: str, max_results: int, search_depth: str, time_range: str
+    ) -> Dict[str, Any]:
+        """
+        Process query using live search via MCP Tavily integration.
+
+        Args:
+            query: User query
+            max_results: Maximum results to return
+            search_depth: Search depth parameter
+            time_range: Time range for search
+
+        Returns:
+            Dictionary with search results and metadata
+        """
+        try:
+            self._log_safe(f" Performing live search with Tavily API...")
+
+            # 🚀 Use MCP Tavily tool for live search
+            # This will be the actual MCP integration point
+            search_results = self._call_tavily_mcp(
+                query, max_results, search_depth, time_range
+            )
+
+            # 🔄 Process and format results for RAG response generation
+            if search_results and search_results.get("results"):
+                # Format for response generator
+                formatted_context = []
+                for result in search_results["results"]:
+                    formatted_context.append(
+                        {
+                            "text": result.get("content", ""),
+                            "source": result.get("url", "web_search"),
+                            "title": result.get("title", "Web Result"),
+                            "score": result.get("score", 0.0),
+                            "metadata": {
+                                "type": "web_result",
+                                "search_engine": "tavily",
+                                "url": result.get("url", ""),
+                                "title": result.get("title", ""),
+                            },
+                        }
+                    )
+
+                # 🧠 Generate response using the response generator with live context
+                if hasattr(self.rag_system, "response_generator"):
+                    response_result = (
+                        self.rag_system.response_generator.generate_response(
+                            query, formatted_context
+                        )
+                    )
+
+                    # 📊 Combine live search metadata with response
+                    response_result.update(
+                        {
+                            "context_items": len(formatted_context),
+                            "search_type": "live_web",
+                            "routing_decision": "live_search",
+                            "live_search_params": {
+                                "search_depth": search_depth,
+                                "time_range": time_range,
+                                "total_web_results": len(search_results["results"]),
+                            },
+                        }
+                    )
+
+                    return response_result
+                else:
+                    # 📝 Fallback: simple response formatting
+                    combined_content = "\n\n".join(
+                        [
+                            f"**{result.get('title', 'Web Result')}**\n{result.get('content', '')}"
+                            for result in search_results["results"][:3]
+                        ]
+                    )
+
+                    return {
+                        "response": f"Based on live web search:\n\n{combined_content}",
+                        "sources": search_results["results"],
+                        "confidence": 0.8,
+                        "context_items": len(search_results["results"]),
+                        "search_type": "live_web",
+                    }
+            else:
+                return {
+                    "response": "No live search results found. Please try a different query or check your internet connection.",
+                    "sources": [],
+                    "confidence": 0.0,
+                    "context_items": 0,
+                    "error": "No live search results",
+                }
+
+        except Exception as e:
+            self._log_safe(f" Live search error: {str(e)}", "error")
+            # 🔄 Fallback to local search
+            self._log_safe(" Falling back to local search...", "warning")
+            return self.rag_system.query(query, max_results=max_results)
+
+    def _call_tavily_mcp(
+        self, query: str, max_results: int, search_depth: str, time_range: str
+    ) -> Dict[str, Any]:
+        """
+        Call Tavily API using the live search module.
+
+        Args:
+            query: Search query
+            max_results: Maximum results
+            search_depth: Search depth
+            time_range: Time range
+
+        Returns:
+            Tavily search results
+        """
+        try:
+            # 🌐 Use the live search module with Tavily Python SDK
+            from src.rag.live_search import LiveSearchManager
+            
+            self._log_safe(
+                f" Tavily API call: query='{query}', depth={search_depth}, range={time_range}"
+            )
+
+            # ✅ Initialize live search manager
+            live_search = LiveSearchManager()
+            
+            # 🚀 Perform the search using Tavily Python SDK
+            search_results = live_search.search(
+                query=query,
+                max_results=max_results,
+                search_depth=search_depth,
+                time_range=time_range,
+                topic="general"
+            )
+
+            # 📊 Format results for UI consumption
+            if search_results and search_results.get("success"):
+                formatted_results = []
+                for result in search_results.get("results", []):
+                    formatted_results.append({
+                        "title": result.get("title", ""),
+                        "content": result.get("content", ""),
+                        "url": result.get("url", ""),
+                        "score": result.get("score", 0.0),
+                        "published_date": result.get("published_date", ""),
+                    })
+
+                return {
+                    "results": formatted_results,
+                    "total_results": len(formatted_results),
+                    "search_params": {
+                        "query": query,
+                        "max_results": max_results,
+                        "search_depth": search_depth,
+                        "time_range": time_range,
+                    },
+                    "status": "success",
+                    "analytics": search_results.get("analytics", {}),
+                }
+            else:
+                # 🚨 Handle search failure
+                error_msg = search_results.get("error", "Unknown search error")
+                self._log_safe(f" Tavily search failed: {error_msg}", "warning")
+                
+                return {
+                    "results": [],
+                    "total_results": 0,
+                    "search_params": {
+                        "query": query,
+                        "max_results": max_results,
+                        "search_depth": search_depth,
+                        "time_range": time_range,
+                    },
+                    "status": "failed",
+                    "error": error_msg,
+                }
+
+        except Exception as e:
+            self._log_safe(f" Tavily API call failed: {str(e)}", "error")
+            return {
+                "results": [],
+                "total_results": 0,
+                "error": str(e),
+                "status": "error",
+            }
 
     def _refresh_knowledge_base(self) -> Tuple[Dict[str, Any], List[List[str]]]:
         """
@@ -1225,7 +2302,7 @@ class GradioApp:
             return stats, documents
 
         except Exception as e:
-            self._log_safe(f"❌ Error refreshing knowledge base: {e}", "error")
+            self._log_safe(f" Error refreshing knowledge base: {e}", "error")
             # Fallback stats
             fallback_stats = {
                 "total_documents": self.total_documents,
@@ -1381,7 +2458,7 @@ class GradioApp:
             return system_status, components, logs
 
         except Exception as e:
-            self._log_safe(f"❌ Error running health check: {e}", "error")
+            self._log_safe(f" Error running health check: {e}", "error")
             return {}, [], f"Health check failed: {str(e)}"
 
     def _get_stats_string(self) -> str:
@@ -1396,7 +2473,7 @@ class GradioApp:
             **kwargs: Additional arguments for gr.Interface.launch()
         """
         if not self.interface:
-            self._log_safe("❌ Interface not created", "error")
+            self._log_safe(" Interface not created", "error")
             return
 
         # Merge default config with provided kwargs

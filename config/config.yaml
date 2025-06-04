@@ -103,6 +103,7 @@ features:
   content_recommendation: false
   document_upload: true
   image_processing: false
+  live_search: true
   multi_language_support: false
   query_processing: true
   question_generation: false
@@ -186,6 +187,18 @@ rag:
   temperature: 0.7
   top_k: 10
   top_p: 0.9
+live_search:
+  enable_caching: true
+  include_raw_content: true
+  max_results: 10
+  search_depth: basic
+  time_range: month
+query_router:
+  confidence_threshold: 0.5
+  enable_hybrid_search: true
+  live_weight: 0.4
+  local_weight: 0.6
+  max_hybrid_results: 10
 security:
   allowed_domains: []
   blocked_content_types:
