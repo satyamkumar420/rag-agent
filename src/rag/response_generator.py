@@ -59,7 +59,7 @@ class ResponseGenerator:
         self.logger.info("ResponseGenerator initialized with advanced features")
 
     def _initialize_llm_providers(self):
-        """Initialize available LLM providers."""
+        """Initialize available LLM providers with optimization."""
         try:
             # Try to initialize Gemini
             gemini_api_key = os.getenv("GEMINI_API_KEY")
@@ -67,8 +67,27 @@ class ResponseGenerator:
                 try:
                     import google.generativeai as genai
 
-                    genai.configure(api_key=gemini_api_key)
-                    self.gemini_client = genai.GenerativeModel(
+                    # Check if settings manager has already initialized Gemini client
+                    # This is an optimization to avoid recreating the client
+                    from utils.settings_manager import SettingsManager
+
+                    if (
+                        hasattr(SettingsManager, "_gemini_client_cache")
+                        and SettingsManager._gemini_client_cache is not None
+                        and SettingsManager._gemini_client_key == gemini_api_key
+                    ):
+
+                        self.logger.info(
+                            "Reusing existing Gemini client from settings manager"
+                        )
+                        genai_client = SettingsManager._gemini_client_cache
+                    else:
+                        # Configure new client
+                        genai.configure(api_key=gemini_api_key)
+                        genai_client = genai
+
+                    # Create model instance
+                    self.gemini_client = genai_client.GenerativeModel(
                         "gemini-2.5-flash-preview-05-20"
                     )
                     self.logger.info("Gemini client initialized")

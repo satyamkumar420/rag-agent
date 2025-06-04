@@ -416,7 +416,7 @@ class DocumentProcessor:
         Returns:
             Dictionary with extracted text and metadata
         """
-        self.logger.info(f"🎯 Processing PPTX: {file_path}")
+        self.logger.info(f" Processing PPTX: {file_path}")
 
         try:
             presentation = pptx.Presentation(file_path)

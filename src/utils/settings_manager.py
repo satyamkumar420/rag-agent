@@ -16,6 +16,7 @@ import os
 import re
 import logging
 import json
+import time
 from typing import Dict, Any, Optional, Tuple, List
 from pathlib import Path
 from datetime import datetime
@@ -515,18 +516,58 @@ class SettingsManager:
 
     # 🧪 API Testing Functions
 
+    # Cache for Gemini client to avoid recreating it
+    _gemini_client_cache = None
+    _gemini_client_key = None
+    _gemini_last_test_time = None
+    _gemini_test_cooldown = 10  # seconds between tests
+
     def _test_gemini_connection(self, api_key: str) -> Dict[str, Any]:
-        """Test Gemini API connection."""
+        """Test Gemini API connection with caching and optimization."""
         try:
+            # Check if we've tested this key recently
+            current_time = time.time()
+            if (
+                self._gemini_last_test_time
+                and api_key == self._gemini_client_key
+                and current_time - self._gemini_last_test_time
+                < self._gemini_test_cooldown
+            ):
+
+                self.logger.info(
+                    "Using cached Gemini test result (within cooldown period)"
+                )
+                return {
+                    "success": True,
+                    "status": "✅ Gemini API connected (cached)",
+                    "details": "Using cached test result",
+                }
+
             import google.generativeai as genai
 
-            genai.configure(api_key=api_key)
+            # Use cached client if the API key is the same
+            if api_key == self._gemini_client_key and self._gemini_client_cache:
+                self.logger.info("Using cached Gemini client")
+                client = self._gemini_client_cache
+            else:
+                # Configure new client
+                genai.configure(api_key=api_key)
+                self._gemini_client_cache = genai
+                self._gemini_client_key = api_key
+                client = genai
 
-            # 🧪 Simple test call
-            model = genai.GenerativeModel("gemini-2.5-flash-preview-05-20")
-            response = model.generate_content("Hello")
+            # 🧪 Simple test call - use embedding API instead of GenerativeModel
+            # This is faster and more efficient for testing connection
+            test_result = client.embed_content(
+                model="gemini-embedding-exp-03-07",
+                content="test connection",
+                task_type="retrieval_document",
+            )
 
-            if response and response.text:
+            # Update last test time
+            self._gemini_last_test_time = current_time
+
+            if test_result and "embedding" in test_result:
                 return {
                     "success": True,
                     "status": "✅ Gemini API connected",
@@ -536,7 +577,7 @@ class SettingsManager:
                 return {
                     "success": False,
                     "status": "❌ Gemini API failed",
-                    "error": "No response from API",
+                    "error": "No embedding in response",
                 }
 
         except Exception as e:

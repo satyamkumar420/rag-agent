@@ -12,6 +12,7 @@ import os
 import sys
 import tempfile
 import json
+import time
 from typing import Dict, List, Any, Optional, Tuple
 from datetime import datetime
 from pathlib import Path
@@ -2384,8 +2385,28 @@ class GradioApp:
             return f"❌ Error: {str(e)}"
 
     def _test_api_connection(self, var_name: str) -> str:
-        """Test API connection for the specified variable."""
+        """Test API connection for the specified variable with optimized performance."""
         try:
+            # Show testing status immediately
+            status_message = f"🔄 Testing {var_name} connection..."
+            self._log_safe(status_message)
+
+            # For Gemini, check if we've tested recently (use cached result)
+            if var_name == "GEMINI_API_KEY" and hasattr(
+                self.settings_manager, "_gemini_last_test_time"
+            ):
+                current_time = time.time()
+                if (
+                    self.settings_manager._gemini_last_test_time
+                    and current_time - self.settings_manager._gemini_last_test_time < 10
+                ):
+
+                    self._log_safe(
+                        f"✅ Using cached {var_name} test result (tested recently)"
+                    )
+                    return "✅ Gemini API connected (cached result)"
+
+            # Perform the actual test
             result = self.settings_manager.test_connection(var_name)
 
             if result["success"]:
