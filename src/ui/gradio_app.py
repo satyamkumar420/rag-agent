@@ -520,10 +520,30 @@ class GradioApp:
                 export_btn = gr.Button("📤 Export", variant="secondary")
                 clear_kb_btn = gr.Button("Clear All", variant="stop")
 
-            # Knowledge base stats
+            # Knowledge base stats with enhanced embedding model info
             kb_stats = gr.JSON(
-                label="Knowledge Base Statistics",
-                value={"total_documents": 0, "total_chunks": 0, "storage_size": "0 MB"},
+                label="📊 Knowledge Base Statistics",
+                value={
+                    "total_documents": 0,
+                    "total_chunks": 0,
+                    "storage_size": "0 MB",
+                    "embedding_model": "Loading...",
+                    "embedding_status": "Checking...",
+                    "vector_db_status": "Checking...",
+                },
+            )
+
+            # 🤖 Embedding Model Status Display
+            embedding_model_status = gr.JSON(
+                label="🤖 Embedding Model Information",
+                value={
+                    "model_name": "Loading...",
+                    "provider": "Checking...",
+                    "status": "Initializing...",
+                    "api_status": "Checking connection...",
+                    "dimension": "Unknown",
+                    "performance": "Gathering stats...",
+                },
             )
 
             # Document list
@@ -537,11 +557,12 @@ class GradioApp:
         # Event handlers
         refresh_btn.click(
             fn=self._refresh_knowledge_base,
-            outputs=[kb_stats, document_list],
+            outputs=[kb_stats, embedding_model_status, document_list],
         )
 
         return {
             "kb_stats": kb_stats,
+            "embedding_model_status": embedding_model_status,
             "document_list": document_list,
         }
 
@@ -633,10 +654,15 @@ class GradioApp:
 
     def _get_initial_system_metrics(self) -> Dict[str, Any]:
         """Get initial system metrics."""
+        # Get real embedding model info
+        embedding_info = self._get_embedding_model_info()
+
         return {
             "documents_processed": self.total_documents,
             "chunks_stored": self.total_chunks,
-            "embedding_model": "Gemini",
+            "embedding_model": embedding_info.get("model_name", "Gemini"),
+            "embedding_status": embedding_info.get("status", "Checking..."),
+            "embedding_provider": embedding_info.get("provider", "Google"),
             "vector_db": "Pinecone",
             "uptime": "Just started",
             "status": "🟢 System operational",
@@ -748,13 +774,20 @@ class GradioApp:
             return {"error": f"Analytics unavailable: {str(e)}", "status": "❌ Error"}
 
     def _get_real_system_metrics(self) -> Dict[str, Any]:
-        """Get real system metrics."""
+        """Get real system metrics with embedding model info."""
         try:
+            # Get embedding model information
+            embedding_info = self._get_embedding_model_info()
+
             metrics = {
                 "documents_processed": self.total_documents,
                 "chunks_stored": self.total_chunks,
                 "queries_processed": self.query_count,
                 "last_updated": datetime.now().strftime("%H:%M:%S"),
+                "embedding_model": embedding_info.get("model_name", "Unknown"),
+                "embedding_status": embedding_info.get("status", "Unknown"),
+                "embedding_provider": embedding_info.get("provider", "Unknown"),
+                "embedding_dimension": embedding_info.get("dimension", "Unknown"),
             }
 
             # Get system status
@@ -772,10 +805,12 @@ class GradioApp:
                     }
                 )
 
-            # Add component status
+            # Add component status with embedding model details
             components = []
             if hasattr(self.rag_system, "embedding_generator"):
-                components.append("Embedding Generator")
+                components.append(
+                    f"Embedding Generator ({embedding_info.get('model_name', 'Unknown')})"
+                )
             if hasattr(self.rag_system, "vector_db"):
                 components.append("Vector Database")
             if hasattr(self.rag_system, "query_processor"):
@@ -2292,27 +2327,50 @@ class GradioApp:
                 "status": "error",
             }
 
-    def _refresh_knowledge_base(self) -> Tuple[Dict[str, Any], List[List[str]]]:
+    def _refresh_knowledge_base(
+        self,
+    ) -> Tuple[Dict[str, Any], Dict[str, Any], List[List[str]]]:
         """
-        Refresh knowledge base information with real data from vector DB.
+        Refresh knowledge base information with real data from vector DB and embedding model.
 
         Returns:
-            Tuple of (stats, document list)
+            Tuple of (kb_stats, embedding_model_status, document_list)
         """
         try:
             # Get real knowledge base statistics
             kb_info = self._get_real_kb_stats()
 
-            stats = {
+            # Get embedding model information
+            embedding_info = self._get_embedding_model_info()
+
+            # 📊 Knowledge Base Stats
+            kb_stats = {
                 "total_documents": kb_info.get("total_documents", self.total_documents),
                 "total_chunks": kb_info.get("total_chunks", self.total_chunks),
                 "storage_size": f"{kb_info.get('total_chunks', self.total_chunks) * 0.5:.1f} MB",
                 "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "vector_db_status": kb_info.get("vector_db_status", "Unknown"),
-                "embedding_model": kb_info.get(
-                    "embedding_model", "gemini-embedding-exp-03-07"
-                ),
+                "embedding_model": embedding_info.get("model_name", "Unknown"),
+                "embedding_status": embedding_info.get("status", "Unknown"),
                 "index_health": kb_info.get("index_health", "Unknown"),
+            }
+
+            # 🤖 Embedding Model Status
+            embedding_status = {
+                "model_name": embedding_info.get("model_name", "Unknown"),
+                "provider": embedding_info.get("provider", "Unknown"),
+                "status": embedding_info.get("status", "Unknown"),
+                "api_status": embedding_info.get("api_status", "Unknown"),
+                "dimension": embedding_info.get("dimension", "Unknown"),
+                "performance": {
+                    "total_requests": embedding_info.get("total_requests", 0),
+                    "success_rate": embedding_info.get("success_rate", "0%"),
+                    "cache_hit_rate": embedding_info.get("cache_hit_rate", "0%"),
+                    "batch_size": embedding_info.get("batch_size", "Unknown"),
+                    "max_text_length": embedding_info.get("max_text_length", "Unknown"),
+                    "caching_enabled": embedding_info.get("caching_enabled", False),
+                },
+                "last_checked": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             }
 
             # Get real document list from vector DB
@@ -2336,23 +2394,37 @@ class GradioApp:
                     ],
                 ]
 
-            return stats, documents
+            return kb_stats, embedding_status, documents
 
         except Exception as e:
             self._log_safe(f" Error refreshing knowledge base: {e}", "error")
             # Fallback stats
-            fallback_stats = {
+            fallback_kb_stats = {
                 "total_documents": self.total_documents,
                 "total_chunks": self.total_chunks,
                 "storage_size": f"{self.total_chunks * 0.5:.1f} MB",
                 "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "error": str(e),
             }
-            return fallback_stats, []
+
+            fallback_embedding_status = {
+                "model_name": "Error",
+                "provider": "Unknown",
+                "status": "❌ Error",
+                "api_status": "❌ Error",
+                "dimension": "Unknown",
+                "performance": {"error": str(e)},
+                "last_checked": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            }
+
+            return fallback_kb_stats, fallback_embedding_status, []
 
     def _get_real_kb_stats(self) -> Dict[str, Any]:
         """Get real knowledge base statistics from the RAG system."""
         try:
+            # 🔍 Get embedding model info first
+            embedding_model_info = self._get_embedding_model_info()
+
             if hasattr(self.rag_system, "vector_db") and self.rag_system.vector_db:
                 # Try to get stats from vector DB
                 vector_stats = (
@@ -2369,12 +2441,17 @@ class GradioApp:
                         "total_vectors", self.total_chunks
                     ),
                     "vector_db_status": "✅ Connected" if vector_stats else "⚠️ Limited",
-                    "embedding_model": (
-                        getattr(
-                            self.rag_system.embedding_generator, "model_name", "Unknown"
-                        )
-                        if hasattr(self.rag_system, "embedding_generator")
-                        else "Unknown"
+                    "embedding_model": embedding_model_info.get(
+                        "model_name", "Unknown"
+                    ),
+                    "embedding_model_status": embedding_model_info.get(
+                        "status", "Unknown"
+                    ),
+                    "embedding_dimension": embedding_model_info.get(
+                        "dimension", "Unknown"
+                    ),
+                    "embedding_provider": embedding_model_info.get(
+                        "provider", "Unknown"
                     ),
                     "index_health": (
                         "✅ Healthy"
@@ -2387,7 +2464,18 @@ class GradioApp:
                     "total_documents": self.total_documents,
                     "total_chunks": self.total_chunks,
                     "vector_db_status": "❌ Not Connected",
-                    "embedding_model": "Unknown",
+                    "embedding_model": embedding_model_info.get(
+                        "model_name", "Unknown"
+                    ),
+                    "embedding_model_status": embedding_model_info.get(
+                        "status", "❌ Not Available"
+                    ),
+                    "embedding_dimension": embedding_model_info.get(
+                        "dimension", "Unknown"
+                    ),
+                    "embedding_provider": embedding_model_info.get(
+                        "provider", "Unknown"
+                    ),
                     "index_health": "❌ Unavailable",
                 }
         except Exception as e:
@@ -2456,6 +2544,108 @@ class GradioApp:
         else:
             return "📄 Document"
 
+    def _get_embedding_model_info(self) -> Dict[str, Any]:
+        """
+        🤖 Get comprehensive embedding model information.
+
+        Returns:
+            Dictionary with embedding model details
+        """
+        try:
+            model_info = {
+                "model_name": "Unknown",
+                "status": "❌ Not Available",
+                "dimension": "Unknown",
+                "provider": "Unknown",
+                "api_status": "❌ Not Connected",
+            }
+
+            # Check if embedding generator exists and is properly initialized
+            if (
+                hasattr(self.rag_system, "embedding_generator")
+                and self.rag_system.embedding_generator
+            ):
+                embedding_gen = self.rag_system.embedding_generator
+
+                # Get model name - check multiple possible attributes
+                model_name = (
+                    getattr(embedding_gen, "model", None)
+                    or getattr(embedding_gen, "model_name", None)
+                    or "gemini-embedding-exp-03-07"
+                )  # Default Gemini model
+
+                # Get API client status
+                api_connected = (
+                    hasattr(embedding_gen, "client")
+                    and embedding_gen.client is not None
+                )
+
+                # Get configuration details
+                config = getattr(embedding_gen, "config", {})
+
+                model_info.update(
+                    {
+                        "model_name": model_name,
+                        "status": "✅ Available" if api_connected else "⚠️ Limited",
+                        "provider": (
+                            "Google Gemini"
+                            if "gemini" in model_name.lower()
+                            else "Unknown"
+                        ),
+                        "api_status": (
+                            "✅ Connected" if api_connected else "❌ Not Connected"
+                        ),
+                        "dimension": config.get("dimension", "3072"),  # Gemini default
+                        "batch_size": config.get("batch_size", 5),
+                        "max_text_length": config.get("max_text_length", 8192),
+                        "caching_enabled": config.get("enable_caching", True),
+                    }
+                )
+
+                # Get statistics if available
+                if hasattr(embedding_gen, "get_statistics"):
+                    try:
+                        stats = embedding_gen.get_statistics()
+                        model_info.update(
+                            {
+                                "total_requests": stats.get("total_requests", 0),
+                                "successful_requests": stats.get(
+                                    "successful_requests", 0
+                                ),
+                                "cache_hits": stats.get("cache_hits", 0),
+                                "cache_hit_rate": f"{stats.get('cache_hit_rate', 0):.1f}%",
+                                "success_rate": f"{stats.get('success_rate', 0):.1f}%",
+                            }
+                        )
+                    except Exception as e:
+                        self._log_safe(f"Could not get embedding stats: {e}", "warning")
+
+                # Test API connection if possible (quick test)
+                if api_connected:
+                    try:
+                        # Quick test to verify API is working
+                        test_embedding = embedding_gen.generate_query_embedding("test")
+                        if test_embedding:
+                            model_info["api_status"] = "✅ Connected & Working"
+                            model_info["status"] = "✅ Fully Operational"
+                        else:
+                            model_info["api_status"] = "⚠️ Connected but Limited"
+                    except Exception as e:
+                        model_info["api_status"] = f"❌ Connection Error: {str(e)[:50]}"
+
+            return model_info
+
+        except Exception as e:
+            self._log_safe(f"Error getting embedding model info: {e}", "error")
+            return {
+                "model_name": "Error",
+                "status": "❌ Error",
+                "dimension": "Unknown",
+                "provider": "Unknown",
+                "api_status": f"❌ Error: {str(e)[:50]}",
+                "error": str(e),
+            }
+
     def _run_health_check(self) -> Tuple[Dict[str, Any], List[List[str]], str]:
         """
         Run system health check.
@@ -2474,8 +2664,13 @@ class GradioApp:
             }
 
             # Component status
+            # Component status with real embedding model info
+            embedding_info = self._get_embedding_model_info()
+            embedding_status = embedding_info.get("status", "Unknown")
+            embedding_details = f"{embedding_info.get('model_name', 'Unknown')} - {embedding_info.get('api_status', 'Unknown')}"
+
             components = [
-                ["Embedding Generator", "Healthy", "Gemini API connected"],
+                ["Embedding Generator", embedding_status, embedding_details],
                 ["Vector Database", "Healthy", "Pinecone connected"],
                 ["Document Processor", "Healthy", "All formats supported"],
                 ["Response Generator", "Healthy", "LLM available"],
