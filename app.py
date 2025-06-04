@@ -558,7 +558,7 @@ class RAGSystem:
             if hasattr(self, "query_router") and (
                 use_live_search or search_mode != "auto"
             ):
-                self.logger.info(f"🧠 Using Query Router with mode: {search_mode}")
+                self.logger.info(f" Using Query Router with mode: {search_mode}")
 
                 search_options = {"search_depth": "basic", "time_range": "month"}
 

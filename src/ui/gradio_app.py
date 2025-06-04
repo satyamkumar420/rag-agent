@@ -188,77 +188,186 @@ class GradioApp:
         return safe_message
 
     def _create_interface(self):
-        """Create the comprehensive Gradio interface."""
-        with gr.Blocks(
-            title=self.title, theme=self.theme, css=self._get_custom_css()
-        ) as interface:
-            # Header
-            gr.Markdown(f"# {self.title}")
-            gr.Markdown(self.description)
+        """🎨 Create the modern full-width Gradio interface."""
+        # 🌟 Use modern theme with custom CSS
+        theme = gr.themes.Soft(
+            primary_hue="blue",
+            secondary_hue="purple",
+            neutral_hue="slate",
+            font=gr.themes.GoogleFont("Inter"),
+            font_mono=gr.themes.GoogleFont("JetBrains Mono"),
+        ).set(
+            body_background_fill="*neutral_50",
+            body_text_color="*neutral_800",
+            button_primary_background_fill="linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+            button_primary_background_fill_hover="linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%)",
+            button_primary_text_color="white",
+            input_background_fill="*neutral_50",
+            block_background_fill="white",
+            block_border_width="1px",
+            block_border_color="*neutral_200",
+            block_radius="12px",
+            container_radius="20px",
+        )
 
-            # System status bar
-            with gr.Row():
-                status_display = gr.Textbox(
-                    label="System Status",
-                    value="Ready ",
-                    interactive=False,
-                    container=False,
-                )
-                stats_display = gr.Textbox(
-                    label="Stats",
-                    value="Documents: 0 | Chunks: 0 | Queries: 0",
-                    interactive=False,
-                    container=False,
-                )
+        with gr.Blocks(
+            title=self.title,
+            theme=theme,
+            css=self._get_custom_css(),
+            head="""
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <link rel="preconnect" href="https://fonts.googleapis.com">
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+            """,
+        ) as interface:
+
+            # 🎯 Modern Header with Gradient Background
+            with gr.Row(elem_classes="app-header"):
+                with gr.Column():
+                    gr.HTML(
+                        f"""
+                    <div class="app-title">🚀 {self.title}</div>
+                    <div class="app-description">{self.description}</div>
+                    """
+                    )
+
+            # 📊 Enhanced Status Bar with Modern Design
+            with gr.Row(elem_classes="status-bar"):
+                with gr.Column():
+                    status_display = gr.HTML(
+                        value="""
+                        <div class="status-item">
+                            <span class="status-icon">🟢</span>
+                            <span><strong>System Status:</strong> Ready</span>
+                        </div>
+                        """,
+                        elem_classes="status-display",
+                    )
+                with gr.Column():
+                    stats_display = gr.HTML(
+                        value="""
+                        <div class="status-item">
+                            <span class="status-icon">📊</span>
+                            <span><strong>Stats:</strong> Documents: 0 | Chunks: 0 | Queries: 0</span>
+                        </div>
+                        """,
+                        elem_classes="stats-display",
+                    )
 
             # Store interface components for updates early
             self.status_display = status_display
             self.stats_display = stats_display
 
-            # Main interface tabs
-            with gr.Tabs() as tabs:
-                # Document Upload Tab
+            # 🎨 Modern Interface Tabs with Enhanced Styling
+            with gr.Tabs(elem_classes="tab-nav") as tabs:
+                # 📄 Document Upload Tab
                 if self.enable_file_upload:
-                    with gr.TabItem("📄 Upload Documents", id="upload_tab"):
-                        upload_components = self._create_upload_tab()
+                    with gr.TabItem(
+                        "📄 Upload Documents", id="upload_tab", elem_classes="tab-item"
+                    ):
+                        with gr.Column(elem_classes="feature-card fade-in"):
+                            upload_components = self._create_upload_tab()
 
-                # URL Processing Tab
+                # 🔗 URL Processing Tab
                 if self.enable_url_input:
-                    with gr.TabItem("🔗 Add URLs", id="url_tab"):
-                        url_components = self._create_url_tab()
+                    with gr.TabItem(
+                        "🔗 Add URLs", id="url_tab", elem_classes="tab-item"
+                    ):
+                        with gr.Column(elem_classes="feature-card fade-in"):
+                            url_components = self._create_url_tab()
 
-                # Query Interface Tab
+                # ❓ Query Interface Tab (Primary Tab)
                 if self.enable_query_interface:
-                    with gr.TabItem("❓ Ask Questions", id="query_tab"):
-                        query_components = self._create_query_tab()
+                    with gr.TabItem(
+                        "❓ Ask Questions", id="query_tab", elem_classes="tab-item"
+                    ):
+                        with gr.Column(elem_classes="feature-card fade-in"):
+                            query_components = self._create_query_tab()
 
-                # Knowledge Base Management Tab
-                with gr.TabItem("📚 Knowledge Base", id="kb_tab"):
-                    kb_components = self._create_knowledge_base_tab()
+                # 📚 Knowledge Base Management Tab
+                with gr.TabItem(
+                    "📚 Knowledge Base", id="kb_tab", elem_classes="tab-item"
+                ):
+                    with gr.Column(elem_classes="feature-card fade-in"):
+                        kb_components = self._create_knowledge_base_tab()
 
-                # Analytics Dashboard Tab
-                with gr.TabItem("📈 Analytics", id="analytics_tab"):
-                    analytics_components = self._create_analytics_tab()
+                # 📈 Analytics Dashboard Tab
+                with gr.TabItem(
+                    "📈 Analytics", id="analytics_tab", elem_classes="tab-item"
+                ):
+                    with gr.Column(elem_classes="feature-card fade-in"):
+                        analytics_components = self._create_analytics_tab()
 
-                # System Health Tab
-                with gr.TabItem("🩺 System Health", id="health_tab"):
-                    health_components = self._create_health_tab()
+                # 🩺 System Health Tab
+                with gr.TabItem(
+                    "🩺 System Health", id="health_tab", elem_classes="tab-item"
+                ):
+                    with gr.Column(elem_classes="feature-card fade-in"):
+                        health_components = self._create_health_tab()
 
-                # Settings Tab
-                with gr.TabItem("⚙️ Settings", id="settings_tab"):
-                    settings_components = self._create_settings_tab()
+                # ⚙️ Settings Tab
+                with gr.TabItem(
+                    "⚙️ Settings", id="settings_tab", elem_classes="tab-item"
+                ):
+                    with gr.Column(elem_classes="feature-card fade-in"):
+                        settings_components = self._create_settings_tab()
 
         self.interface = interface
 
     def _create_upload_tab(self):
-        """Create the document upload tab."""
-        with gr.Row():
-            with gr.Column(scale=1):
-                gr.Markdown("### Upload Documents")
-                gr.Markdown("✅ Supported formats: PDF, DOCX, CSV, XLSX, PPTX, TXT, MD")
+        """🎨 Create the modern document upload tab with full-width design."""
+        # 📊 Upload Statistics Cards
+        with gr.Row(elem_classes="analytics-grid"):
+            with gr.Column(elem_classes="stat-card accent-blue"):
+                gr.HTML(
+                    """
+                <div class="stat-value">7+</div>
+                <div class="stat-label">Supported Formats</div>
+                """
+                )
+            with gr.Column(elem_classes="stat-card accent-green"):
+                gr.HTML(
+                    """
+                <div class="stat-value">∞</div>
+                <div class="stat-label">File Size Limit</div>
+                """
+                )
+            with gr.Column(elem_classes="stat-card accent-purple"):
+                gr.HTML(
+                    """
+                <div class="stat-value">⚡</div>
+                <div class="stat-label">Fast Processing</div>
+                """
+                )
+
+        # 🎯 Main Upload Interface
+        with gr.Row(elem_classes="grid-2"):
+            with gr.Column(elem_classes="metric-card"):
+                gr.HTML(
+                    """
+                <h3 style="margin-top: 0; color: #667eea; font-weight: 600;">
+                    📄 Upload Documents
+                </h3>
+                <p style="color: #718096; margin-bottom: 1.5rem;">
+                    Drag & drop files or click to browse. Multiple files supported.
+                </p>
+                """
+                )
+
+                # 📋 Supported Formats Display
+                gr.HTML(
+                    """
+                <div style="background: linear-gradient(135deg, #1c1c32 0%, #1c1c32 100%);
+                           color: white; padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem;">
+                    <strong>✅ Supported Formats:</strong><br>
+                    📄 PDF • 📝 DOCX • 📊 CSV • 📈 XLSX • 🎯 PPTX • 📄 TXT • 📝 MD
+                </div>
+                """
+                )
 
                 file_upload = gr.File(
-                    label="Select Files",
+                    label="📁 Select Files",
                     file_count="multiple",
                     file_types=[
                         ".pdf",
@@ -269,23 +378,74 @@ class GradioApp:
                         ".txt",
                         ".md",
                     ],
-                    height=200,
+                    height=250,
+                    elem_classes="input-field",
                 )
 
+                # 🎨 Action Buttons with Modern Styling
                 with gr.Row():
                     upload_btn = gr.Button(
-                        "Process Documents", variant="primary", size="lg"
+                        "🚀 Process Documents",
+                        variant="primary",
+                        size="lg",
+                        elem_classes="btn-primary",
                     )
-                    clear_upload_btn = gr.Button("Clear", variant="secondary")
+                    clear_upload_btn = gr.Button(
+                        "🗑️ Clear", variant="secondary", elem_classes="btn-secondary"
+                    )
 
-            with gr.Column(scale=1):
-                gr.Markdown("###   Processing Results")
-                upload_output = gr.Textbox(
-                    label="Results",
-                    lines=15,
-                    interactive=False,
-                    placeholder="Upload results will appear here...",
+            with gr.Column(elem_classes="metric-card"):
+                gr.HTML(
+                    """
+                <h3 style="margin-top: 0; color: #1a1a2e; font-weight: 600;">
+                    📊 Processing Results
+                </h3>
+                <p style="color: #718096; margin-bottom: 1.5rem;">
+                    Real-time processing status and detailed results will appear here.
+                </p>
+                """
                 )
+
+                upload_output = gr.Textbox(
+                    label="📋 Processing Log",
+                    lines=18,
+                    interactive=False,
+                    placeholder="🔄 Upload results will appear here...\n\n💡 Tips:\n• Multiple files can be processed simultaneously\n• Processing time depends on file size and complexity\n• Check the status bar for real-time updates",
+                    elem_classes="input-field",
+                )
+
+        # 📈 Processing Tips
+        with gr.Accordion("💡 Processing Tips & Best Practices", open=False):
+            gr.HTML(
+                """
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem;">
+                <div class="metric-card accent-blue">
+                    <h4>📄 File Preparation</h4>
+                    <ul>
+                        <li>Ensure text is readable and not scanned images</li>
+                        <li>Remove password protection from PDFs</li>
+                        <li>Use descriptive filenames</li>
+                    </ul>
+                </div>
+                <div class="metric-card accent-green">
+                    <h4>⚡ Performance Tips</h4>
+                    <ul>
+                        <li>Smaller files process faster</li>
+                        <li>Batch upload related documents</li>
+                        <li>Monitor system resources</li>
+                    </ul>
+                </div>
+                <div class="metric-card accent-purple">
+                    <h4>🎯 Quality Guidelines</h4>
+                    <ul>
+                        <li>High-quality text improves search accuracy</li>
+                        <li>Structured documents work better</li>
+                        <li>Remove unnecessary formatting</li>
+                    </ul>
+                </div>
+            </div>
+            """
+            )
 
         # Event handlers
         upload_btn.click(
@@ -386,37 +546,100 @@ class GradioApp:
         }
 
     def _create_query_tab(self):
-        """Create the query interface tab."""
-        with gr.Row():
-            with gr.Column(scale=1):
-                gr.Markdown("### ❓ Ask Questions")
-
-                query_input = gr.Textbox(
-                    label="Your Question",
-                    lines=4,
-                    placeholder="Ask a question about your uploaded documents...",
+        """🎨 Create the modern query interface tab with enhanced UX."""
+        # 🎯 Quick Action Cards
+        with gr.Row(elem_classes="analytics-grid"):
+            with gr.Column(elem_classes="stat-card accent-blue"):
+                gr.HTML(
+                    """
+                <div class="stat-value">🤖</div>
+                <div class="stat-label">AI-Powered Search</div>
+                """
+                )
+            with gr.Column(elem_classes="stat-card accent-green"):
+                gr.HTML(
+                    """
+                <div class="stat-value">🌐</div>
+                <div class="stat-label">Live Web Search</div>
+                """
+                )
+            with gr.Column(elem_classes="stat-card accent-purple"):
+                gr.HTML(
+                    """
+                <div class="stat-value">📚</div>
+                <div class="stat-label">Local Knowledge</div>
+                """
+                )
+            with gr.Column(elem_classes="stat-card accent-orange"):
+                gr.HTML(
+                    """
+                <div class="stat-value">⚡</div>
+                <div class="stat-label">Instant Results</div>
+                """
                 )
 
-                with gr.Accordion("⚙️ Query Options", open=False):
-                    include_sources = gr.Checkbox(
-                        label="📚 Include Sources",
-                        value=True,
-                        info="Show source documents and references",
-                    )
-                    max_results = gr.Slider(
-                        label="📊 Max Results",
-                        minimum=1,
-                        maximum=10,
-                        value=5,
-                        step=1,
-                        info="Maximum number of results to return",
+        # 🔍 Main Query Interface
+        with gr.Row(elem_classes="grid-2"):
+            with gr.Column(elem_classes="metric-card"):
+                gr.HTML(
+                    """
+                <h3 style="margin-top: 0; color: #667eea; font-weight: 600;">
+                    ❓ Ask Your Question
+                </h3>
+                <p style="color: #718096; margin-bottom: 1.5rem;">
+                    Ask anything about your documents or get real-time information from the web.
+                </p>
+                """
+                )
+
+                # 🎯 Enhanced Search Input
+                with gr.Column(elem_classes="search-container"):
+                    query_input = gr.Textbox(
+                        label="🔍 Your Question",
+                        lines=4,
+                        placeholder="💡 Try asking:\n• 'What are the main points in the uploaded document?'\n• 'Latest news about AI developments'\n• 'Summarize the key findings from my research papers'",
+                        elem_classes="search-input",
                     )
 
-                    # 🌐 Enhanced Search Options
+                # 🎨 Quick Query Suggestions
+                gr.HTML(
+                    """
+                <div style="margin: 1rem 0;">
+                    <strong style="color: #667eea;">💡 Quick Suggestions:</strong>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem;">
+                        <span style="background: #f0f9ff; color: #1e40af; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.875rem; cursor: pointer;" onclick="document.querySelector('textarea').value='Summarize the main points'">📄 Summarize</span>
+                        <span style="background: #f0fdf4; color: #166534; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.875rem; cursor: pointer;" onclick="document.querySelector('textarea').value='What are the key findings?'">🔍 Key Findings</span>
+                        <span style="background: #fef7ff; color: #7c2d12; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.875rem; cursor: pointer;" onclick="document.querySelector('textarea').value='Latest developments in this field'">🌐 Latest News</span>
+                    </div>
+                </div>
+                """
+                )
+
+                # ⚙️ Advanced Query Options
+                with gr.Accordion("⚙️ Advanced Query Options", open=False):
+                    with gr.Row():
+                        include_sources = gr.Checkbox(
+                            label="📚 Include Sources",
+                            value=True,
+                            info="Show source documents and references",
+                        )
+                        max_results = gr.Slider(
+                            label="📊 Max Results",
+                            minimum=1,
+                            maximum=10,
+                            value=5,
+                            step=1,
+                            info="Maximum number of results to return",
+                        )
+
+                    # 🌐 Enhanced Search Mode Selection
                     with gr.Group():
-                        gr.Markdown("**🔍 Search Mode & Options**")
+                        gr.HTML(
+                            """
+                        <h4 style="color: #667eea; margin-bottom: 1rem;">🔍 Search Mode & Options</h4>
+                        """
+                        )
 
-                        # 🎯 Search Mode Selection
                         search_mode = gr.Dropdown(
                             label="🎯 Search Mode",
                             choices=[
@@ -429,7 +652,6 @@ class GradioApp:
                             info="Choose how to search for information",
                         )
 
-                        # 🌐 Live Search Toggle (for backward compatibility)
                         use_live_search = gr.Checkbox(
                             label="🔍 Enable Live Web Search",
                             value=False,
@@ -452,7 +674,7 @@ class GradioApp:
                                 visible=False,
                             )
 
-                        # 💡 Show/hide advanced options based on live search toggle
+                        # 💡 Dynamic options visibility
                         use_live_search.change(
                             fn=lambda enabled: (
                                 gr.update(visible=enabled),
@@ -463,55 +685,133 @@ class GradioApp:
                             outputs=[search_depth, time_range, search_mode],
                         )
 
-                        # 📝 Search Mode Descriptions
+                        # 📝 Search Mode Guide
                         with gr.Accordion("ℹ️ Search Mode Guide", open=False):
-                            gr.Markdown(
+                            gr.HTML(
                                 """
-                            **🤖 Auto Mode**: Intelligently chooses the best search method based on your query
-                            - Time-sensitive queries → Live search
-                            - Conceptual questions → Local documents
-                            - Factual queries → Hybrid approach
-                            
-                            **📚 Local Only**: Search only in your uploaded documents
-                            - Fastest response time
-                            - Uses your knowledge base
-                            - No internet required
-                            
-                            **🌐 Live Only**: Search only the web for real-time information
-                            - Latest information
-                            - Current events and news
-                            - Requires Tavily API key
-                            
-                            **🔄 Hybrid**: Combines both local documents and live web search
-                            - Best of both worlds
-                            - Comprehensive results
-                            - Balanced approach (recommended when live search is enabled)
+                            <div style="display: grid; gap: 1rem;">
+                                <div class="metric-card accent-blue">
+                                    <h4>🤖 Auto Mode</h4>
+                                    <p>Intelligently chooses the best search method based on your query</p>
+                                    <ul>
+                                        <li>Time-sensitive queries → Live search</li>
+                                        <li>Conceptual questions → Local documents</li>
+                                        <li>Factual queries → Hybrid approach</li>
+                                    </ul>
+                                </div>
+                                <div class="metric-card accent-green">
+                                    <h4>📚 Local Only</h4>
+                                    <p>Search only in your uploaded documents</p>
+                                    <ul>
+                                        <li>Fastest response time</li>
+                                        <li>Uses your knowledge base</li>
+                                        <li>No internet required</li>
+                                    </ul>
+                                </div>
+                                <div class="metric-card accent-purple">
+                                    <h4>🌐 Live Only</h4>
+                                    <p>Search only the web for real-time information</p>
+                                    <ul>
+                                        <li>Latest information</li>
+                                        <li>Current events and news</li>
+                                        <li>Requires Tavily API key</li>
+                                    </ul>
+                                </div>
+                                <div class="metric-card accent-orange">
+                                    <h4>🔄 Hybrid</h4>
+                                    <p>Combines both local documents and live web search</p>
+                                    <ul>
+                                        <li>Best of both worlds</li>
+                                        <li>Comprehensive results</li>
+                                        <li>Balanced approach (recommended)</li>
+                                    </ul>
+                                </div>
+                            </div>
                             """
                             )
 
+                # 🚀 Action Buttons
                 with gr.Row():
-                    query_btn = gr.Button("🚀 Get Answer", variant="primary", size="lg")
-                    clear_query_btn = gr.Button("🗑️ Clear", variant="secondary")
+                    query_btn = gr.Button(
+                        "🚀 Get Answer",
+                        variant="primary",
+                        size="lg",
+                        elem_classes="btn-primary",
+                    )
+                    clear_query_btn = gr.Button(
+                        "🗑️ Clear", variant="secondary", elem_classes="btn-secondary"
+                    )
 
-            with gr.Column(scale=1):
-                gr.Markdown("### 💬 Answer")
+            with gr.Column(elem_classes="metric-card"):
+                gr.HTML(
+                    """
+                <h3 style="margin-top: 0; color: #667eea; font-weight: 600;">
+                    💬 AI Response
+                </h3>
+                <p style="color: #718096; margin-bottom: .5rem;">
+                    Intelligent answers with source citations and confidence scoring.
+                </p>
+                """
+                )
 
                 response_output = gr.Markdown(
-                    label="Response",
-                    value="Your answer will appear here...",
-                    height=400,
+                    label="🤖 AI Response",
+                    value="🔮 **Your intelligent answer will appear here...**\n\n💡 **Tips for better results:**\n- Be specific in your questions\n- Use natural language\n- Ask follow-up questions for clarification\n- Check the confidence score and sources",
+                    height=450,
+                    elem_classes="input-field",
                 )
 
-                confidence_display = gr.Textbox(
-                    label="🎯 Confidence Score",
-                    interactive=False,
-                    visible=self.enable_confidence_display,
-                )
+                # 📊 Response Metadata
+                with gr.Row():
+                    confidence_display = gr.Textbox(
+                        label="🎯 Confidence & Performance",
+                        interactive=False,
+                        visible=self.enable_confidence_display,
+                        elem_classes="input-field",
+                    )
 
+                # 📚 Sources Display
                 sources_output = gr.JSON(
-                    label="📚 Sources",
+                    label="📚 Sources & References",
                     visible=self.enable_source_display,
+                    elem_classes="input-field",
                 )
+
+        # 📈 Query Performance Tips
+        with gr.Accordion("🎯 Query Optimization Tips", open=False):
+            gr.HTML(
+                """
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem;">
+                <div class="metric-card accent-blue">
+                    <h4>🎯 Question Formulation</h4>
+                    <ul>
+                        <li>Be specific and clear</li>
+                        <li>Use natural language</li>
+                        <li>Include context when needed</li>
+                        <li>Ask one question at a time</li>
+                    </ul>
+                </div>
+                <div class="metric-card accent-green">
+                    <h4>🔍 Search Strategy</h4>
+                    <ul>
+                        <li>Use Auto mode for best results</li>
+                        <li>Enable live search for current info</li>
+                        <li>Adjust max results based on need</li>
+                        <li>Check confidence scores</li>
+                    </ul>
+                </div>
+                <div class="metric-card accent-purple">
+                    <h4>📚 Source Utilization</h4>
+                    <ul>
+                        <li>Review source citations</li>
+                        <li>Cross-reference multiple sources</li>
+                        <li>Verify critical information</li>
+                        <li>Use sources for deeper research</li>
+                    </ul>
+                </div>
+            </div>
+            """
+            )
 
         # Event handlers
         query_btn.click(
@@ -1575,23 +1875,413 @@ class GradioApp:
         }
 
     def _get_custom_css(self) -> str:
-        """Get custom CSS for the interface."""
+        """🎨 Get modern full-width custom CSS for the interface."""
         return """
+        /* 🌟 Global Container - Full Width */
         .gradio-container {
-            max-width: 1200px !important;
+            max-width: 100% !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 20px !important;
         }
+        
+        /* 🎨 Modern Color Scheme */
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --warning-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --dark-bg: #1a1a2e;
+            --dark-card: #16213e;
+            --light-bg: #f8fafc;
+            --light-card: #ffffff;
+            --text-primary: #2d3748;
+            --text-secondary: #718096;
+            --border-color: #e2e8f0;
+            --red: #f55b75;
+            --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* 🌙 Dark Theme Support */
+        .dark {
+            --text-primary: #f7fafc;
+            --text-secondary: #cbd5e0;
+            --border-color: #4a5568;
+        }
+        
+        /* 📱 Full Width Layout */
+        .main-container {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+        
+        /* 🎯 Header Styling */
+        .app-header {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 2rem;
+            border-radius: 0 0 20px 20px;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .app-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .app-description {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-bottom: 0;
+        }
+        
+        /* 📊 Status Bar Enhancement */
         .status-bar {
-            background: linear-gradient(90deg, #f0f9ff, #e0f2fe);
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 15px;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-md);
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
         }
+        
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .status-icon {
+            font-size: 1.2rem;
+        }
+        
+        /* 🎨 Tab Styling */
+        .tab-nav {
+            background: var(--dark-bg);
+            border-radius: 15px;
+            padding: 0.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+        }
+        
+        .tab-item {
+            border-radius: 10px !important;
+            padding: 1rem 1.5rem !important;
+            font-weight: 600 !important;
+            transition: all 0.3s ease !important;
+            border: none !important;
+        }
+        
+        
+        .tab-item.selected {
+            background: var(--primary-gradient) !important;
+            color: white !important;
+            box-shadow: var(--shadow-md);
+        }
+        
+        /* 🎯 Card Components */
         .metric-card {
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 16px;
-            margin: 8px;
+            background: var(--dark-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.3s ease;
+        }
+        
+        .metric-card:hover {
+            # transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+            # border-color: #667eea;
+        }
+        
+        .feature-card {
+            background: var(--dark-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 2rem;
+            margin: 1rem 0;
+            box-shadow: var(--shadow-md);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        
+        
+        .feature-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        /* 🎨 Button Enhancements */
+        .btn-primary {
+            background: var(--primary-gradient) !important;
+            border: none !important;
+            border-radius: 12px !important;
+            padding: 0.75rem 2rem !important;
+            font-weight: 600 !important;
+            font-size: 1rem !important;
+            transition: all 0.3s ease !important;
+            box-shadow: var(--shadow-sm) !important;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px) !important;
+            box-shadow: var(--shadow-lg) !important;
+        }
+        
+        .btn-secondary {
+            background: var(--red) !important;
+            border: none !important;
+            border-radius: 12px !important;
+            padding: 0.75rem 1.5rem !important;
+            font-weight: 600 !important;
+            transition: all 0.3s ease !important;
+        }
+        
+        .btn-success {
+            background: var(--success-gradient) !important;
+            border: none !important;
+            border-radius: 12px !important;
+            padding: 0.75rem 1.5rem !important;
+            font-weight: 600 !important;
+        }
+        
+        .btn-warning {
+            background: var(--warning-gradient) !important;
+            border: none !important;
+            border-radius: 12px !important;
+            padding: 0.75rem 1.5rem !important;
+            font-weight: 600 !important;
+        }
+        
+        /* 📝 Input Field Styling */
+        .input-field {
+            border: 2px solid var(--border-color) !important;
+            border-radius: 12px !important;
+            padding: 1rem !important;
+            font-size: 1rem !important;
+            transition: all 0.3s ease !important;
+            background: var(--dark-bg) !important;
+        }
+        
+        .input-field:focus {
+            border-color: #667eea !important;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
+            outline: none !important;
+        }
+        
+        /* 📊 Progress Indicators */
+        .progress-bar {
+            background: var(--primary-gradient);
+            height: 8px;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-container {
+            background: var(--border-color);
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        /* 🎯 Grid Layouts */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+        
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+        }
+        
+        .grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+        }
+        
+        /* 📱 Responsive Design */
+        @media (max-width: 1200px) {
+            .grid-4 { grid-template-columns: repeat(2, 1fr); }
+            .grid-3 { grid-template-columns: repeat(2, 1fr); }
+        }
+        
+        @media (max-width: 768px) {
+            .gradio-container {
+                padding: 0 10px !important;
+            }
+            
+            .grid-2, .grid-3, .grid-4 {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .status-bar {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+                padding: 1rem;
+            }
+            
+            .app-title {
+                font-size: 2rem;
+            }
+            
+            .feature-card {
+                padding: 1.5rem;
+            }
+        }
+        
+        /* 🌟 Animation Classes */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        .slide-up {
+            animation: slideUp 0.6s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* 🎨 Accent Colors */
+        .accent-blue { border-left: 4px solid #3b82f6; }
+        .accent-green { border-left: 4px solid #10b981; }
+        .accent-purple { border-left: 4px solid #8b5cf6; }
+        .accent-orange { border-left: 4px solid #f59e0b; }
+        .accent-red { border-left: 4px solid #ef4444; }
+        
+        /* 🔍 Search Enhancement */
+        .search-container {
+            position: relative;
+            margin-bottom: 2rem;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 1rem 1rem 1rem 3rem;
+            border: 2px solid var(--border-color);
+            border-radius: 25px;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .search-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .search-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+        }
+        
+        /* 📈 Analytics Dashboard */
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+        
+        .stat-card {
+            background: var(--dark-bg);
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+
+        /* 🚀 Loading States */
+        .loading {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .loading::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            animation: loading 1.5s infinite;
+        }
+        
+        @keyframes loading {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+        
+        /* 🎨 Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--light-bg);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary-gradient);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #5a67d8;
         }
         """
 
@@ -2793,7 +3483,7 @@ class GradioApp:
                 self._check_response_generator_health()
             )
             components.append(
-                ["🧠 Response Generator", response_gen_status, response_gen_details]
+                [" Response Generator", response_gen_status, response_gen_details]
             )
             logs.append(
                 f"[{current_time}] INFO - Response generator: {response_gen_details}"
