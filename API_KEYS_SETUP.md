@@ -36,6 +36,21 @@
 3. Select your Google Cloud project (or create a new one)
 4. Copy the generated API key
 
+## How to Get Tavily API Key
+
+### Step 1: Create Tavily Account
+
+1. Go to [https://app.tavily.com/](https://app.tavily.com/)
+2. Click **"Sign Up"** and register with your email or use a social login
+3. Verify your email address if prompted
+
+### Step 2: Access API Keys
+
+1. Log into your Tavily account
+2. Navigate to the **"API Keys"** section in your dashboard
+3. Click **"Create API Key"** if you don't have one yet
+4. Copy the generated API key and store it securely
+
 ## 🚀 Quick Start Guide
 
 ### Option 1: Set Environment Variables Temporarily
@@ -45,6 +60,7 @@
 ```cmd
 set PINECONE_API_KEY=pc-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 set GEMINI_API_KEY=AIzaSyxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+set TAVILY_API_KEY=tvly_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 python app.py
 ```
 
@@ -53,6 +69,7 @@ python app.py
 ```powershell
 $env:PINECONE_API_KEY="pc-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 $env:GEMINI_API_KEY="AIzaSyxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+$env:TAVILY_API_KEY="tvly_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 python app.py
 ```
 
@@ -63,6 +80,7 @@ python app.py
 ```
 PINECONE_API_KEY=pc-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 GEMINI_API_KEY=AIzaSyxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TAVILY_API_KEY=tvly_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  # Optional
 ```
 
@@ -87,6 +105,11 @@ python app.py
 - ✅ 1 million tokens per day
 - ✅ Sufficient for development and demos
 
+### Tavily Free Tier:
+
+- ✅ Generous free tier for testing and development
+- ✅ Check [Tavily Pricing](https://www.tavily.com/pricing) for current limits
+
 ## 🔧 Troubleshooting
 
 ### If you get "Invalid API Key" errors:
@@ -103,7 +126,7 @@ python app.py
 
 ## 🎯 Ready to Launch
 
-Once you have both API keys:
+Once you have all API keys:
 
 1. **Set the environment variables**
 2. **Run the application:**
