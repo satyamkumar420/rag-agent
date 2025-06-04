@@ -2237,7 +2237,11 @@ class GradioApp:
             )
 
             # 📊 Format results for UI consumption
-            if search_results and search_results.get("success"):
+            if (
+                search_results
+                and search_results.get("results")
+                and not search_results.get("error")
+            ):
                 formatted_results = []
                 for result in search_results.get("results", []):
                     formatted_results.append(
