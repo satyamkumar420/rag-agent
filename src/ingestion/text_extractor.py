@@ -45,11 +45,11 @@ class TextExtractor:
     Cleans, normalizes, and chunks text from various sources with intelligent processing.
 
     Features:
-    - Advanced text cleaning and normalization 
-    - Language detection 
-    - Intelligent sentence segmentation 
-    - Smart text chunking with overlap 
-    - Metadata preservation 
+    - Advanced text cleaning and normalization
+    - Language detection
+    - Intelligent sentence segmentation
+    - Smart text chunking with overlap
+    - Metadata preservation
     """
 
     def __init__(self, config: Optional[Dict[str, Any]] = None):

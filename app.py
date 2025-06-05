@@ -1,3 +1,8 @@
+# 🚀 Ensure NLTK 'punkt' is always available
+import nltk
+
+nltk.download("punkt_tab")
+
 """
 AI Embedded Knowledge Agent - Main Application Entry Point
 
@@ -24,6 +29,7 @@ except ImportError:
 # Add src directory to Python path
 src_path = Path(__file__).parent / "src"
 sys.path.insert(0, str(src_path))
+
 
 # Import all components
 from utils.config_manager import ConfigManager
