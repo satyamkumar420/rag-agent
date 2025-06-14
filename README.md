@@ -40,7 +40,7 @@ _See how the system processes documents, performs live web searches, and generat
 
 ## 🎯 Project Origin & Agentic Vision
 
-This project was initially conceived and developed as part of the **`agents-mcp-hackathon`**, showcasing a robust **`agent-demo-track`** for intelligent knowledge retrieval and generation. Our vision was to build an autonomous AI agent capable of:
+This project was initially conceived and developed as part of the **`payman`**, showcasing a robust **`paymanai`** for intelligent knowledge retrieval and generation. Our vision was to build an autonomous AI agent capable of:
 
 - **🧠 Intelligent Information Retrieval**: Acting as a smart agent to fetch, process, and synthesize information from diverse sources (documents, URLs, live web).
 - **🚀 Dynamic Query Routing**: Intelligently deciding between local knowledge base retrieval and real-time web search based on query intent.
